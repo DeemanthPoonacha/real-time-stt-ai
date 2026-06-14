@@ -1,0 +1,136 @@
+{
+  "demo_metadata": {
+    "description": "Simulated sales call between a CloudSync Pro sales rep and a prospect from TechStartup Inc.",
+    "duration_seconds": 120,
+    "language": "en",
+    "scenario": "Follow-up call with warm lead who downloaded a whitepaper"
+  },
+  "segments": [
+    {
+      "speaker": "rep",
+      "text": "Hi Sarah, this is Alex from CloudSync Pro. Thanks for taking the time to chat today!",
+      "timestamp": 0.0,
+      "delay_ms": 0
+    },
+    {
+      "speaker": "prospect",
+      "text": "Hi Alex, sure, I have about 15 minutes. I downloaded your whitepaper on enterprise file sync last week.",
+      "timestamp": 3.0,
+      "delay_ms": 3000
+    },
+    {
+      "speaker": "rep",
+      "text": "Great, I saw that! Before I dive in, I'd love to understand your current setup. What are you using for file sharing and collaboration at TechStartup?",
+      "timestamp": 8.0,
+      "delay_ms": 5000
+    },
+    {
+      "speaker": "prospect",
+      "text": "We're using Dropbox Business right now. It works okay for basic sharing, but honestly, our team has been complaining about sync speed. Files take forever when they're large.",
+      "timestamp": 14.0,
+      "delay_ms": 6000
+    },
+    {
+      "speaker": "rep",
+      "text": "I hear that a lot from teams using Dropbox. How big is your team currently?",
+      "timestamp": 22.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "We've got about 85 people now, and we're planning to double by the end of the year.",
+      "timestamp": 26.0,
+      "delay_ms": 4000
+    },
+    {
+      "speaker": "rep",
+      "text": "Wow, congratulations on the growth! At that scale, sync performance becomes critical. Our delta-sync technology only transfers the changed bytes, so average sync time is about 0.3 seconds compared to 3 plus seconds with traditional tools.",
+      "timestamp": 30.0,
+      "delay_ms": 4000
+    },
+    {
+      "speaker": "prospect",
+      "text": "That sounds impressive, but honestly, we looked at switching tools before and the pricing was always the issue. We're a startup and budget is tight. How much does CloudSync Pro actually cost?",
+      "timestamp": 38.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "rep",
+      "text": "Totally understand. Our Professional plan is $25 per user per month, which includes unlimited storage and all enterprise features.",
+      "timestamp": 47.0,
+      "delay_ms": 9000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Twenty-five dollars per user? That's definitely more than what we're paying for Dropbox right now. I'm not sure our CFO would approve that kind of increase.",
+      "timestamp": 53.0,
+      "delay_ms": 6000
+    },
+    {
+      "speaker": "rep",
+      "text": "I get it, sticker price matters. But let me share something interesting — most of our customers who switched from Dropbox actually ended up spending less overall because they eliminated two or three other tools they were using alongside it, like separate backup and compliance solutions. What other tools are you paying for besides Dropbox?",
+      "timestamp": 60.0,
+      "delay_ms": 7000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Well, we do have a separate backup service and we recently had to buy a compliance tool for our SOC 2 audit. So I guess there are some hidden costs there.",
+      "timestamp": 70.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Exactly. CloudSync Pro includes all of that — backup, versioning, compliance reporting, and audit logs are all built in. One of our customers, RetailMax, eliminated three separate tools when they switched and saved $67,000 annually. Would it be helpful if I put together a cost comparison specific to your stack?",
+      "timestamp": 78.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Yeah, that would actually be really helpful. But I should mention, I'm not the one who makes the final call on this. I'd need to bring this to our CTO and VP of Engineering.",
+      "timestamp": 88.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Of course, that makes total sense for a decision like this. What I can do is put together a one-page executive summary with the ROI numbers tailored to your company, plus the cost comparison. Would it also be helpful if I jumped on a quick call with your CTO to answer any technical questions directly?",
+      "timestamp": 96.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "That could work. Let me check his calendar and get back to you. Actually, one more thing — we're in the middle of our SOC 2 certification. How does CloudSync Pro handle data security and compliance?",
+      "timestamp": 106.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Great question, and that's one of our strongest areas. We use AES-256 end-to-end encryption with zero-knowledge architecture. We're SOC 2 Type II certified ourselves, so our compliance reports can actually support your audit. HealthFirst passed their HIPAA audit 50% faster after implementing us. Would you like me to include our security whitepaper in the materials I send?",
+      "timestamp": 114.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Yes, please include that. This has been really informative, Alex. Send me those materials and I'll share them with the team. Let's plan to reconnect next week.",
+      "timestamp": 124.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Perfect! I'll have everything in your inbox by end of day today. How about next Wednesday at 2pm for our follow-up? I can also set up a 14-day free trial so your team can test it out before the meeting.",
+      "timestamp": 132.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Wednesday works. And sure, let's do the trial. That way we'll have hands-on experience to discuss.",
+      "timestamp": 140.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "rep",
+      "text": "Excellent! I'll send the trial setup link along with the materials. Thanks so much for your time, Sarah. Talk to you Wednesday!",
+      "timestamp": 145.0,
+      "delay_ms": 5000
+    }
+  ]
+}

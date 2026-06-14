@@ -1,0 +1,26 @@
+# FastAPI & Server
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
+websockets==15.0.1
+python-multipart==0.0.20
+
+# STT - faster-whisper (default provider)
+faster-whisper==1.1.1
+
+# AI - OpenAI SDK (compatible with Ollama)
+openai==1.87.0
+
+# RAG - Vector Store
+chromadb==1.0.7
+sentence-transformers==4.1.0
+
+# Audio Processing
+numpy==2.2.6
+soundfile==0.13.1
+
+# Configuration
+python-dotenv==1.1.0
+
+# Utilities
+pydantic==2.11.3
+pydantic-settings==2.9.1

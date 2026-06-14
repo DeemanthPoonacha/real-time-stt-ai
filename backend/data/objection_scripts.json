@@ -1,0 +1,110 @@
+{
+  "objection_categories": [
+    {
+      "category": "Price & Budget",
+      "objections": [
+        {
+          "trigger_phrases": ["too expensive", "over budget", "can't afford", "costs too much", "cheaper option", "price is too high"],
+          "objection": "It's too expensive / Over our budget",
+          "response_strategy": "Reframe from cost to investment. Quantify the cost of their current problem.",
+          "primary_script": "I totally understand budget is a key factor. Let me ask you this — you mentioned your team spends about [X hours/week] dealing with [pain point]. At your team's average cost, that's roughly $[Y] per month in lost productivity. CloudSync Pro at $25/user/month would actually save you $[Z] net. Would it help if I put together a custom ROI analysis?",
+          "alternative_scripts": [
+            "That's a fair concern. A lot of our customers felt the same way initially. What they found is that CloudSync Pro actually consolidated 3-4 separate tools they were paying for — file sharing, backup, compliance, and collaboration. The net effect was a 40% reduction in their total tool spend. Would you be open to a cost comparison?",
+            "I hear you. Before we set pricing aside, would it be helpful to look at our Starter plan? It's $12/user/month and covers the core features you mentioned. Many teams start there and upgrade as they see the ROI."
+          ],
+          "key_tactics": ["Quantify the cost of inaction", "Compare to total current spend", "Offer tiered pricing options", "Provide ROI calculator"]
+        },
+        {
+          "trigger_phrases": ["free alternative", "open source", "why pay", "free version"],
+          "objection": "Why should we pay when there are free alternatives?",
+          "response_strategy": "Highlight hidden costs of free tools — security risks, no support, limited features.",
+          "primary_script": "That's a great question. Free tools work well for individuals, but when you're managing a team of [X] people, the hidden costs add up fast — no admin controls means security risks, no SLA means downtime hits your whole team, and no support means your IT team becomes the help desk. Our customers who switched from free tools typically saved 15+ hours per week in IT overhead alone. Would you like to see a real example?",
+          "alternative_scripts": [
+            "Free tools are great for getting started. The challenge comes when you need compliance certifications for a client audit, or when a team member accidentally deletes a critical file and there's no versioning. Those moments are when the investment in a proper solution pays for itself many times over."
+          ],
+          "key_tactics": ["Highlight hidden costs and risks", "Security and compliance gaps", "Support and SLA differences"]
+        }
+      ]
+    },
+    {
+      "category": "Competitor & Status Quo",
+      "objections": [
+        {
+          "trigger_phrases": ["already use", "happy with current", "using dropbox", "using sharepoint", "using google drive", "using box", "have a solution", "not looking to switch"],
+          "objection": "We already use [Competitor] and we're happy with it",
+          "response_strategy": "Acknowledge, then probe for hidden pain points. Don't bash the competitor.",
+          "primary_script": "That's great — [Competitor] is a solid tool and I'm not here to bash them. Just curious though — if I could show you a way to [solve specific pain point they mentioned] while keeping everything your team already likes about [Competitor], would that be worth a 15-minute look? A lot of our customers actually used [Competitor] before and were surprised by the difference.",
+          "alternative_scripts": [
+            "I appreciate that loyalty — it means you value stability. Quick question: when was the last time you evaluated whether [Competitor] still meets your needs? Companies grow fast, and sometimes the tool that worked for 20 people doesn't scale to 100. Would you be open to a quick comparison?",
+            "Totally understand. Out of curiosity, on a scale of 1-10, how would your team rate their satisfaction with [Competitor]? [If less than 9] Interesting — what would it take to get to a 10? Because that gap is exactly where we tend to add the most value."
+          ],
+          "key_tactics": ["Don't bash competitors", "Find the gap in satisfaction", "Use migration ease as leverage", "Offer side-by-side comparison"]
+        }
+      ]
+    },
+    {
+      "category": "Timing & Urgency",
+      "objections": [
+        {
+          "trigger_phrases": ["not a good time", "maybe next quarter", "too busy", "call back later", "not right now", "revisit later"],
+          "objection": "It's not a good time / Call back later",
+          "response_strategy": "Create urgency by quantifying the cost of waiting. Offer low-commitment next step.",
+          "primary_script": "I completely respect that timing is everything. Just so I understand — when you say 'not a good time,' is it that the challenge we discussed isn't a priority, or that you're just swamped right now? [If swamped] What if I send you a 2-minute video walkthrough you can watch whenever it's convenient? That way you have all the info and we can reconnect when the timing is right. Would next month work?",
+          "alternative_scripts": [
+            "I understand you're busy. Here's what I've seen though — the companies that wait until 'next quarter' to fix their [pain point] end up spending 3x more because the problem compounds. What if we did a quick 15-minute pilot setup? Zero commitment, and if it doesn't wow your team, we part ways. Fair?",
+            "No problem at all. Before I let you go, just one thought — you mentioned [specific pain point] is costing you [X]. Every month that continues is another $[Y] in lost productivity. I'd hate for you to look back in 6 months and wish you'd started sooner. Can we at least book a tentative slot for [specific date]?"
+          ],
+          "key_tactics": ["Diagnose the real reason", "Quantify cost of delay", "Offer low-commitment next step", "Book specific follow-up date"]
+        }
+      ]
+    },
+    {
+      "category": "Authority & Decision Making",
+      "objections": [
+        {
+          "trigger_phrases": ["not the decision maker", "need to talk to my boss", "need approval", "check with my manager", "not my decision", "need to discuss internally"],
+          "objection": "I need to check with my manager / I'm not the decision maker",
+          "response_strategy": "Equip them to sell internally. Offer to join a meeting with the decision maker.",
+          "primary_script": "That makes total sense — decisions like this should involve the right stakeholders. Here's what I can do to help: I'll put together a one-page executive summary that highlights the ROI specifically for your company, plus a comparison with what you're using today. That way you can forward it and it makes the conversation easy. Would it also be helpful if I joined a quick call with your [manager/CTO] to answer any technical questions directly?",
+          "alternative_scripts": [
+            "Totally understand. In your experience, what does your [manager/CTO] typically care most about when evaluating new tools — is it cost savings, security, or ease of adoption? [Based on answer] Perfect, let me tailor the materials around that. I'll also include a case study from a company in your industry. Would you be able to forward that along this week?",
+            "Of course. You know your organization best — what do you think would be the most compelling argument for your decision maker? Is it the [cost savings/security/speed] angle? Let me arm you with the exact data points to make the case."
+          ],
+          "key_tactics": ["Equip them as an internal champion", "Offer to join stakeholder meeting", "Provide tailored materials", "Understand decision criteria"]
+        }
+      ]
+    },
+    {
+      "category": "Trust & Security",
+      "objections": [
+        {
+          "trigger_phrases": ["security concerns", "data privacy", "where is data stored", "compliance", "GDPR", "HIPAA", "SOC 2", "encryption", "trust", "safe"],
+          "objection": "We have concerns about data security / compliance",
+          "response_strategy": "Lead with certifications and architecture. Offer security review meeting.",
+          "primary_script": "Security is our top priority — I'm glad you brought this up. CloudSync Pro uses AES-256 end-to-end encryption with a zero-knowledge architecture, meaning we literally cannot access your files. We're SOC 2 Type II certified, GDPR compliant, and HIPAA ready. We also offer data residency options — your data stays in the region you choose. Would it be helpful if I arranged a call with our security team to walk through our architecture?",
+          "alternative_scripts": [
+            "Great question, and frankly, that's one of the main reasons companies switch TO us. Unlike [competitor], we use zero-knowledge encryption — your files are encrypted before they leave your device, and we don't hold the keys. We also just passed our third SOC 2 audit. I can send you our security whitepaper — would that help?",
+            "I take that very seriously. Here's what we provide: full audit logs, admin-controlled sharing permissions, remote wipe capability, and automatic compliance reporting. HealthFirst, a healthcare company with strict HIPAA requirements, passed their audit 50% faster after implementing CloudSync Pro. Want me to connect you with their IT director for a reference?"
+          ],
+          "key_tactics": ["Lead with certifications", "Explain encryption architecture", "Offer security team call", "Provide compliance documentation"]
+        }
+      ]
+    },
+    {
+      "category": "Skepticism & Hesitation",
+      "objections": [
+        {
+          "trigger_phrases": ["send me more info", "need to think about it", "let me review", "I'll get back to you", "need more time"],
+          "objection": "Send me some info / I need to think about it",
+          "response_strategy": "Diagnose the real concern behind the stall. Provide specific materials and a firm follow-up.",
+          "primary_script": "Absolutely, I'll send that right over. Just so I send you the most relevant info — what's the main thing you'd want to evaluate? Is it [pricing/features/security/integration]? [Based on answer] Perfect. I'll include a custom comparison based on that. And just so this doesn't fall through the cracks — would Thursday at 2pm work for a quick 10-minute follow-up call? That way I can answer any questions that come up after you review.",
+          "alternative_scripts": [
+            "Of course. Before I put that together, can I ask what specifically you need to think through? Is it the technical fit, the pricing, or something else? I want to make sure the materials I send address your exact concern, not just generic brochures.",
+            "Happy to send info. Here's what I'll include: a product overview, ROI calculator pre-filled with your numbers, and a case study from [similar company]. I'll also block 15 minutes on [specific day] for a follow-up — does that work?"
+          ],
+          "key_tactics": ["Diagnose the real objection", "Send targeted materials", "Book specific follow-up", "Create micro-commitment"]
+        }
+      ]
+    }
+  ]
+}
