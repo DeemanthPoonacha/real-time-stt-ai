@@ -109,7 +109,7 @@ export class WebSocketManager {
  */
 
 export class AudioCapture {
-  constructor(wsManager, onAudioLevel) {
+  constructor(wsManager, onAudioLevel, options = {}) {
     this.wsManager = wsManager;
     this.onAudioLevel = onAudioLevel;
     this.mediaStream = null;
@@ -118,6 +118,12 @@ export class AudioCapture {
     this.processor = null;
     this.isRecording = false;
     this.animationFrame = null;
+    this.options = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      ...options
+    };
   }
 
   async start() {
@@ -126,9 +132,9 @@ export class AudioCapture {
         audio: {
           channelCount: 1,
           sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: this.options.echoCancellation,
+          noiseSuppression: this.options.noiseSuppression,
+          autoGainControl: this.options.autoGainControl,
         }
       });
 

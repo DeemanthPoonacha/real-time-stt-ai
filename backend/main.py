@@ -157,6 +157,16 @@ async def ingest_documents():
     }
 
 
+@app.get("/api/demo-transcript")
+async def get_demo_transcript():
+    """Get the demo transcript for frontend-driven TTS playback."""
+    demo_path = DATA_DIR / "demo_transcript.json"
+    if not demo_path.exists():
+        raise HTTPException(status_code=404, detail="Demo transcript not found")
+    with open(demo_path, "r") as f:
+        return json.load(f)
+
+
 # --- WebSocket: Main Coaching Pipeline ---
 
 @app.websocket("/ws/coaching")
@@ -239,57 +249,29 @@ async def coaching_websocket(websocket: WebSocket):
                         if coaching_task and not coaching_task.done():
                             coaching_task.cancel()
 
-                        # Get AI coaching (streaming)
-                        async def stream_coaching(text: str):
-                            try:
-                                full_response = ""
-                                async for chunk in ai_coach.get_coaching(text):
-                                    full_response += chunk
-                                    await send_json({
-                                        "type": "coaching_stream",
-                                        "chunk": chunk,
-                                        "done": False,
-                                    })
-
-                                # Parse the full response and send as structured data
-                                try:
-                                    json_str = full_response
-                                    if "```json" in json_str:
-                                        json_str = json_str.split("```json")[1].split("```")[0]
-                                    elif "```" in json_str:
-                                        json_str = json_str.split("```")[1].split("```")[0]
-                                    parsed = json.loads(json_str.strip())
-                                except (json.JSONDecodeError, IndexError):
-                                    parsed = {
-                                        "type": "tip",
-                                        "priority": "medium",
-                                        "title": "Coaching Tip",
-                                        "suggestion": full_response[:300],
-                                        "script": "",
-                                    }
-
-                                await send_json({
-                                    "type": "coaching",
-                                    "data": parsed,
-                                    "streaming": False,
-                                })
-                                await send_json({
-                                    "type": "coaching_stream",
-                                    "chunk": "",
-                                    "done": True,
-                                })
-                            except asyncio.CancelledError:
-                                pass
-                            except Exception as e:
-                                logger.error(f"Coaching error: {e}")
-                                await send_json({
-                                    "type": "error",
-                                    "message": str(e)[:200],
-                                })
-
                         coaching_task = asyncio.create_task(
-                            stream_coaching(transcript_text)
+                            _stream_coaching(ai_coach, send_json, transcript_text)
                         )
+
+                await send_json({"type": "status", "state": "listening"})
+
+            elif msg_type == "demo_text":
+                # Demo mode: frontend sends transcript text directly (spoken via TTS)
+                transcript_text = message.get("text", "")
+                speaker = message.get("speaker", "unknown")
+                if not transcript_text:
+                    continue
+
+                await send_json({"type": "status", "state": "processing"})
+
+                # Only generate coaching for prospect's speech
+                if speaker == "prospect":
+                    if coaching_task and not coaching_task.done():
+                        coaching_task.cancel()
+
+                    coaching_task = asyncio.create_task(
+                        _stream_coaching(ai_coach, send_json, transcript_text)
+                    )
 
                 await send_json({"type": "status", "state": "listening"})
 
@@ -298,6 +280,55 @@ async def coaching_websocket(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         await send_json({"type": "error", "message": str(e)[:200]})
+
+
+async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str):
+    """Shared helper: stream coaching from AI coach and send structured result."""
+    try:
+        full_response = ""
+        async for chunk in ai_coach.get_coaching(transcript_text):
+            full_response += chunk
+            await send_json({
+                "type": "coaching_stream",
+                "chunk": chunk,
+                "done": False,
+            })
+
+        # Parse the full response and send as structured data
+        try:
+            json_str = full_response
+            if "```json" in json_str:
+                json_str = json_str.split("```json")[1].split("```")[0]
+            elif "```" in json_str:
+                json_str = json_str.split("```")[1].split("```")[0]
+            parsed = json.loads(json_str.strip())
+        except (json.JSONDecodeError, IndexError):
+            parsed = {
+                "type": "tip",
+                "priority": "medium",
+                "title": "Coaching Tip",
+                "suggestion": full_response[:300],
+                "script": "",
+            }
+
+        await send_json({
+            "type": "coaching",
+            "data": parsed,
+            "streaming": False,
+        })
+        await send_json({
+            "type": "coaching_stream",
+            "chunk": "",
+            "done": True,
+        })
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        logger.error(f"Coaching error: {e}")
+        await send_json({
+            "type": "error",
+            "message": str(e)[:200],
+        })
 
 
 # --- WebSocket: Demo Mode ---

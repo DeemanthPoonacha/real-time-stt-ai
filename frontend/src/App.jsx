@@ -5,6 +5,7 @@ import CoachingPanel from './components/CoachingPanel';
 import CallStats from './components/CallStats';
 import PlaybookSidebar from './components/PlaybookSidebar';
 import { WebSocketManager, AudioCapture } from './lib/websocket';
+import { DemoPlayer } from './lib/demoPlayer';
 
 export default function App() {
   // --- State ---
@@ -19,18 +20,33 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [callStartTime, setCallStartTime] = useState(null);
   const [objectionsDetected, setObjectionsDetected] = useState(0);
+  const [demoSpeaker, setDemoSpeaker] = useState(null); // who is currently speaking in demo
+  const [demoProgress, setDemoProgress] = useState(null); // {current, total}
 
   // --- Refs ---
   const wsRef = useRef(null);
   const audioRef = useRef(null);
+  const demoRef = useRef(null);
+  const isDemoRef = useRef(isDemo);
+  const demoSpeakerRef = useRef(demoSpeaker);
+
+  // Keep refs in sync with state for use inside useCallback closures
+  useEffect(() => {
+    isDemoRef.current = isDemo;
+  }, [isDemo]);
+
+  useEffect(() => {
+    demoSpeakerRef.current = demoSpeaker;
+  }, [demoSpeaker]);
 
   // --- WebSocket Message Handler ---
   const handleMessage = useCallback((data) => {
     switch (data.type) {
       case 'transcript':
+        // Map transcript to current speaker if in demo mode
         setTranscriptSegments(prev => [...prev, {
           text: data.text,
-          speaker: data.speaker || 'unknown',
+          speaker: isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : (data.speaker || 'unknown'),
           timestamp: data.timestamp,
           language: data.language,
         }]);
@@ -58,8 +74,7 @@ export default function App() {
 
       case 'status':
         if (data.state === 'completed') {
-          setIsDemo(false);
-          setConnectionState('connected');
+          // Don't auto-clear demo — that's handled by DemoPlayer.onComplete
         } else if (data.state === 'playing') {
           setConnectionState('processing');
         } else {
@@ -116,26 +131,91 @@ export default function App() {
     }
   }, [isRecording, language, handleMessage, handleStateChange]);
 
-  // --- Toggle Demo ---
-  const handleToggleDemo = useCallback(() => {
+  // --- Toggle Demo (TTS-powered with live audio capture) ---
+  const handleToggleDemo = useCallback(async () => {
     if (isDemo) {
+      // Stop demo
+      demoRef.current?.stop();
+      demoRef.current = null;
+      audioRef.current?.stop();
+      audioRef.current = null;
       wsRef.current?.disconnect();
       wsRef.current = null;
       setIsDemo(false);
       setCallStartTime(null);
+      setDemoSpeaker(null);
+      setDemoProgress(null);
+      setConnectionState('disconnected');
     } else {
+      // Connect to coaching WS
       const ws = new WebSocketManager(handleMessage, handleStateChange);
-      ws.connect('/ws/demo');
+      ws.connect('/ws/coaching');
       wsRef.current = ws;
 
-      // Wait for connection then start
-      setTimeout(() => {
-        ws.startDemo(1.0);
+      // Wait for WS connection
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      ws.sendConfig({ language });
+
+      // Start Audio Capture with echoCancellation disabled so it hears the speakers
+      const audio = new AudioCapture(ws, setAudioLevel, {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      });
+      const started = await audio.start();
+
+      if (started) {
+        audioRef.current = audio;
+
+        const demo = new DemoPlayer({
+          onTranscript: (segment) => {
+            console.log(`[Demo TTS] ${segment.speaker}: "${segment.text}"`);
+          },
+          onSpeakingChange: (speaker) => {
+            setDemoSpeaker(speaker);
+          },
+          onProgress: (progress) => {
+            setDemoProgress(progress);
+            setConnectionState('processing');
+          },
+          onComplete: () => {
+            setIsDemo(false);
+            setDemoSpeaker(null);
+            setDemoProgress(null);
+            setCallStartTime(null);
+            setConnectionState('connected');
+            audioRef.current?.stop();
+            audioRef.current = null;
+            wsRef.current?.disconnect();
+            wsRef.current = null;
+          },
+          onError: (msg) => {
+            console.error('Demo error:', msg);
+            setIsDemo(false);
+            setDemoSpeaker(null);
+            setDemoProgress(null);
+            setCallStartTime(null);
+            setConnectionState('disconnected');
+            audioRef.current?.stop();
+            audioRef.current = null;
+            wsRef.current?.disconnect();
+            wsRef.current = null;
+          },
+        });
+
+        demoRef.current = demo;
         setIsDemo(true);
         setCallStartTime(Date.now());
-      }, 500);
+
+        // Start TTS playback
+        demo.start(ws, 1.0);
+      } else {
+        ws.disconnect();
+        alert('Failed to access microphone. Microphone access is required to capture the TTS speaker output for transcription.');
+      }
     }
-  }, [isDemo, handleMessage, handleStateChange]);
+  }, [isDemo, language, handleMessage, handleStateChange]);
 
   // --- Language Change ---
   const handleLanguageChange = useCallback((lang) => {
@@ -147,6 +227,8 @@ export default function App() {
 
   // --- Reset ---
   const handleReset = useCallback(() => {
+    demoRef.current?.stop();
+    demoRef.current = null;
     audioRef.current?.stop();
     audioRef.current = null;
     wsRef.current?.disconnect();
@@ -160,16 +242,35 @@ export default function App() {
     setCallStartTime(null);
     setObjectionsDetected(0);
     setAudioLevel(0);
+    setDemoSpeaker(null);
+    setDemoProgress(null);
     setConnectionState('disconnected');
+    window.speechSynthesis.cancel();
   }, []);
 
   // --- Cleanup on unmount ---
   useEffect(() => {
     return () => {
+      demoRef.current?.stop();
       audioRef.current?.stop();
       wsRef.current?.disconnect();
+      window.speechSynthesis.cancel();
     };
   }, []);
+
+  // --- Animate audio level during demo TTS ---
+  useEffect(() => {
+    if (!isDemo || !demoSpeaker) return;
+
+    const interval = setInterval(() => {
+      setAudioLevel(0.2 + Math.random() * 0.5);
+    }, 120);
+
+    return () => {
+      clearInterval(interval);
+      setAudioLevel(0);
+    };
+  }, [isDemo, demoSpeaker]);
 
   const isActive = isRecording || isDemo;
 
@@ -206,6 +307,47 @@ export default function App() {
             onReset={handleReset}
           />
         </div>
+
+        {/* Demo TTS indicator */}
+        {isDemo && (
+          <div className="flex items-center gap-3 mt-3 px-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs">🔊</span>
+              <span className="text-[10px] uppercase tracking-wider text-[--color-text-muted] font-medium">
+                TTS Demo
+              </span>
+            </div>
+            {demoSpeaker && (
+              <div className="flex items-center gap-2 animate-fade-in">
+                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                  demoSpeaker === 'rep'
+                    ? 'bg-[--color-accent-blue]'
+                    : 'bg-[--color-accent-emerald]'
+                }`} />
+                <span className={`text-xs font-semibold ${
+                  demoSpeaker === 'rep'
+                    ? 'text-[--color-accent-blue]'
+                    : 'text-[--color-accent-emerald]'
+                }`}>
+                  {demoSpeaker === 'rep' ? 'Sales Rep speaking...' : 'Prospect speaking...'}
+                </span>
+              </div>
+            )}
+            {demoProgress && (
+              <div className="ml-auto flex items-center gap-2">
+                <div className="w-24 h-1.5 bg-[--color-bg-secondary] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] rounded-full transition-all duration-500"
+                    style={{ width: `${(demoProgress.current / demoProgress.total) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-[--color-text-muted] font-mono">
+                  {demoProgress.current}/{demoProgress.total}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* ===== Stats Bar ===== */}
