@@ -1,5 +1,5 @@
 # FastAPI & Server
-fastapi==0.115.12
+fastapi>=0.115.0,<0.116.0
 uvicorn[standard]==0.34.3
 websockets==15.0.1
 python-multipart==0.0.20

@@ -66,9 +66,9 @@ class AICoach:
         else:
             rag_context = "(No specific playbook context found for this conversation segment.)"
 
-        return SALES_COACH_SYSTEM_PROMPT.format(
-            rag_context=rag_context,
-            transcript=transcript,
+        return (
+            SALES_COACH_SYSTEM_PROMPT.replace("{rag_context}", rag_context)
+            .replace("{transcript}", transcript)
         )
 
     def _get_conversation_context(self) -> str:
@@ -96,7 +96,8 @@ class AICoach:
         """
         Get streaming coaching suggestions for the given transcript text.
 
-        Yields partial text chunks as they arrive from the LLM.
+        Attempts to use the LLM first. If offline or fails, falls back to a
+        local RAG-based suggestion, streaming it to keep the UI smooth.
         """
         # Add to conversation history
         self.add_transcript(transcript_text)
@@ -132,15 +133,76 @@ class AICoach:
                     yield chunk.choices[0].delta.content
 
         except Exception as e:
-            logger.error(f"AI Coach error: {e}")
-            # Return a fallback suggestion
-            yield json.dumps({
-                "type": "tip",
-                "priority": "low",
-                "title": "AI Coach Offline",
-                "suggestion": f"AI coaching temporarily unavailable: {str(e)[:100]}. Check your LLM configuration.",
-                "script": "",
-            })
+            logger.warning(f"LLM connection offline or error: {e}. Activating local RAG fallback.")
+            
+            # Generate high-quality matched suggestion from local ChromaDB
+            fallback_suggestion = self._generate_local_fallback(transcript_text)
+            
+            # Stream the fallback suggestion in small chunks to simulate LLM streaming
+            chunk_size = 6
+            for i in range(0, len(fallback_suggestion), chunk_size):
+                yield fallback_suggestion[i:i+chunk_size]
+                await asyncio.sleep(0.015)
+
+    def _generate_local_fallback(self, text: str) -> str:
+        """Generate a high-quality coaching suggestion locally using ChromaDB RAG search."""
+        try:
+            results = self.rag_engine.search(text, top_k=1)
+            if results:
+                best_match = results[0]
+                source_type = best_match["metadata"].get("source_type", "tip")
+                source = best_match["metadata"].get("source", "playbook")
+                
+                if source_type == "objection":
+                    lines = best_match["text"].split("\n")
+                    category = "Objection Handling"
+                    response = ""
+                    for line in lines:
+                        if line.startswith("Category:"):
+                            category = line.split("Category:")[1].strip()
+                        elif line.startswith("Response:"):
+                            response = line.split("Response:")[1].strip()
+                    
+                    if not response:
+                        response = best_match["text"]
+                        
+                    return json.dumps({
+                        "type": "objection",
+                        "priority": "high",
+                        "title": f"Handle Objection: {category}",
+                        "suggestion": f"The prospect raised concern about {category.lower()}. Reframe using the playbook track.",
+                        "script": response
+                    }, indent=2)
+                
+                # Playbook/Knowledge tip
+                lines = best_match["text"].split("\n")
+                title = "Playbook Tip"
+                detail = best_match["text"]
+                for line in lines:
+                    if line.startswith("Headline:") or line.startswith("Name:") or line.startswith("Scenario:"):
+                        title = line.split(":", 1)[1].strip()
+                    elif line.startswith("Detail:") or line.startswith("Script:") or line.startswith("Talk Track:"):
+                        detail = line.split(":", 1)[1].strip()
+                
+                return json.dumps({
+                    "type": "script" if "script" in best_match["text"].lower() else "tip",
+                    "priority": "medium",
+                    "title": title[:40],
+                    "suggestion": f"Relevant playbook reference from {source}.",
+                    "script": detail[:200]
+                }, indent=2)
+                
+        except Exception as e:
+            logger.error(f"Fallback generation error: {e}")
+            
+        # Default fallback if RAG query also fails
+        return json.dumps({
+            "type": "tip",
+            "priority": "medium",
+            "title": "Acknowledge & Qualify",
+            "suggestion": "Listen actively and ask clarifying questions to understand their current workflow and core pain points.",
+            "script": "How are you currently managing these workflows, and what is the biggest bottleneck you face today?"
+        }, indent=2)
 
     async def get_coaching_full(self, transcript_text: str) -> dict:
         """
