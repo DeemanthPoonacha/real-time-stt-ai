@@ -8,6 +8,7 @@ interface DemoPlayerOptions {
   onError?: (message: string) => void;
   getLatestRepScript?: () => string | null;
   clearLatestRepScript?: () => void;
+  onCoachingSuggestion?: (suggestion: { type: string; suggestion: string; title?: string; priority?: string; script?: string }) => void;
 }
 
 interface Segment {
@@ -27,6 +28,7 @@ export class DemoPlayer {
   private onError?: (message: string) => void;
   private getLatestRepScript?: () => string | null;
   private clearLatestRepScript?: () => void;
+  private onCoachingSuggestion?: (suggestion: { type: string; suggestion: string; title?: string; priority?: string; script?: string }) => void;
 
   private segments: Segment[] = [];
   private isCancelled = false;
@@ -57,7 +59,8 @@ export class DemoPlayer {
     onComplete,
     onError,
     getLatestRepScript,
-    clearLatestRepScript
+    clearLatestRepScript,
+    onCoachingSuggestion
   }: DemoPlayerOptions) {
     this.onTranscript = onTranscript;
     this.onSpeakingChange = onSpeakingChange;
@@ -66,6 +69,7 @@ export class DemoPlayer {
     this.onError = onError;
     this.getLatestRepScript = getLatestRepScript;
     this.clearLatestRepScript = clearLatestRepScript;
+    this.onCoachingSuggestion = onCoachingSuggestion;
 
     // Preload voices
     this._initVoices();
@@ -283,30 +287,50 @@ export class DemoPlayer {
         const greetingSegment = this.segments[0];
         console.log(`🎬 Running Demo in Dynamic AI-vs-AI mode! Initial greeting: "${greetingSegment.text}"`);
 
-        // Show greeting in UI
+        // 1. Show greeting on Coaching Panel as a suggested script card
+        this.onCoachingSuggestion?.({
+          type: 'script',
+          title: this.language === 'he' ? 'פתח שיחה: ברכה ראשונית' : 'Call Opener: Initial Greeting',
+          suggestion: this.language === 'he' 
+            ? 'התחל את השיחה על ידי ברכת הלקוח והצגת עצמך.' 
+            : 'Start the conversation by greeting the customer and introducing yourself.',
+          script: greetingSegment.text,
+          priority: 'high'
+        });
+
+        // 2. Wait for the user to click the "Speak Suggested Script" button on the greeting card
+        console.log("⏳ demoPlayer: Pausing. Awaiting user's trigger for the initial greeting greeting segment...");
+        const scriptToSpeak = await this.waitForRepTrigger();
+
+        if (this.isCancelled) return;
+
+        // 3. Show greeting in UI
         this.onTranscript?.({
-          text: greetingSegment.text,
-          speaker: greetingSegment.speaker,
+          text: scriptToSpeak,
+          speaker: 'rep',
           timestamp: Date.now() / 1000,
         });
 
-        // Report initial progress
+        // 4. Report initial progress
         this.onProgress?.({
           current: 1,
           total: MAX_CONV_LIMIT,
-          speaker: greetingSegment.speaker,
+          speaker: 'rep',
         });
+        this.dynamicTurnCount++;
 
-        // Speak greeting
-        this.onSpeakingChange?.(greetingSegment.speaker);
-        await this._speak(greetingSegment.text, greetingSegment.speaker);
+        // 5. Speak greeting
+        this.onSpeakingChange?.('rep');
+        await this._speak(scriptToSpeak, 'rep');
         this.onSpeakingChange?.(null);
 
-        // Send greeting to backend to kick off conversation history and prospect generator
+        if (this.isCancelled) return;
+
+        // 6. Send greeting to backend to kick off conversation history and prospect generator
         this.wsManager?.send({
           type: 'demo_text',
-          text: greetingSegment.text,
-          speaker: greetingSegment.speaker,
+          text: scriptToSpeak,
+          speaker: 'rep',
         });
         return;
       }
@@ -334,27 +358,29 @@ export class DemoPlayer {
         let audioToPlay: HTMLAudioElement | null = null;
 
         if (segment.speaker === 'rep') {
-          if (i > 0) {
-            console.log(`⏳ demoPlayer (static): Pausing at segment ${i}. Awaiting user trigger...`);
-            textToSpeak = await this.waitForRepTrigger();
-            this.latestRepScript = null;
-            this.clearLatestRepScript?.();
-            audioToPlay = this.audioCache.get('dynamic-rep') || null;
-            this.audioCache.delete('dynamic-rep');
-          } else {
-            // Check if AI generated a live response for the rep's turn
-            const aiScript = this.latestRepScript || this.getLatestRepScript?.();
-            if (aiScript && aiScript.trim()) {
-              textToSpeak = aiScript;
-              this.latestRepScript = null;
-              this.clearLatestRepScript?.();
+          const suggestionTitle = i === 0
+            ? (this.language === 'he' ? 'פתח שיחה: ברכה ראשונית' : 'Call Opener: Initial Greeting')
+            : (this.language === 'he' ? 'תסריט מוצע' : 'Suggested Script');
+          const suggestionDesc = i === 0
+            ? (this.language === 'he' ? 'התחל את השיחה על ידי ברכת הלקוח והצגת עצמך.' : 'Start the conversation by greeting the customer and introducing yourself.')
+            : (this.language === 'he' ? 'קרא את התסריט המוצע לפרק זה.' : 'Speak the suggested talk track for this segment.');
+          const suggestionPriority = i === 0 ? 'high' : 'medium';
 
-              // Check if we have pre-fetched dynamic audio
-              audioToPlay = this.audioCache.get('dynamic-rep') || null;
-              this.audioCache.delete('dynamic-rep');
-              console.log(`🤖 demoPlayer: Rep speaking live AI response: "${textToSpeak}"`);
-            }
-          }
+          this.onCoachingSuggestion?.({
+            type: 'script',
+            title: suggestionTitle,
+            suggestion: suggestionDesc,
+            script: textToSpeak,
+            priority: suggestionPriority
+          });
+
+          console.log(`⏳ demoPlayer (static): Pausing at segment ${i}. Awaiting user trigger...`);
+          textToSpeak = await this.waitForRepTrigger();
+
+          this.latestRepScript = null;
+          this.clearLatestRepScript?.();
+          audioToPlay = this.audioCache.get('dynamic-rep') || null;
+          this.audioCache.delete('dynamic-rep');
         }
 
         if (!audioToPlay) {

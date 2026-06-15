@@ -66,9 +66,16 @@ export default function App() {
     switch (data.type) {
       case 'transcript':
         // Map transcript to current speaker if in demo mode, prioritizing backend speaker
+        const currentSpeaker = data.speaker || (isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : 'unknown');
+        // If representative starts speaking in live mode, clear previous coaching suggestions
+        if (currentSpeaker === 'rep') {
+          setCoachingSuggestions([]);
+          setStreamingText('');
+          setIsStreaming(false);
+        }
         setTranscriptSegments(prev => [...prev, {
           text: data.text,
-          speaker: data.speaker || (isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : 'unknown'),
+          speaker: currentSpeaker,
           timestamp: data.timestamp,
           language: data.language,
         }]);
@@ -76,7 +83,7 @@ export default function App() {
 
       case 'coaching':
         if (data.data) {
-          setCoachingSuggestions([data.data]); // REPLACE instead of append!
+          setCoachingSuggestions(prev => [...prev, data.data]); // Append suggestions
           if (data.data.script) {
             latestRepScriptRef.current = data.data.script;
             if (demoRef.current) {
@@ -108,7 +115,6 @@ export default function App() {
           setIsStreaming(false);
         } else {
           if (!isStreamingRef.current) {
-            setCoachingSuggestions([]);
             setStreamingText('');
             setIsStreaming(true);
           }
@@ -145,6 +151,9 @@ export default function App() {
     if (demoRef.current) {
       demoRef.current.triggerRepresentativeResponse(script);
     }
+    setCoachingSuggestions([]);
+    setStreamingText('');
+    setIsStreaming(false);
   }, []);
 
   // --- Toggle Recording ---
@@ -258,6 +267,9 @@ export default function App() {
         getLatestRepScript: () => latestRepScriptRef.current,
         clearLatestRepScript: () => {
           latestRepScriptRef.current = null;
+        },
+        onCoachingSuggestion: (suggestion) => {
+          setCoachingSuggestions(prev => [...prev, suggestion]);
         }
       });
 

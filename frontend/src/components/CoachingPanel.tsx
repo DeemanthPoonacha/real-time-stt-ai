@@ -256,7 +256,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                               )}
                             </button>
                           </div>
-                          <p className="text-xl text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10 mb-2.5">
+                          <p className="text-lg text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10 mb-2.5">
                             "{suggestion.script}"
                           </p>
 
