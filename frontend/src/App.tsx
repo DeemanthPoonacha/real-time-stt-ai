@@ -6,6 +6,7 @@ import CallStats from './components/CallStats';
 import PlaybookSidebar from './components/PlaybookSidebar';
 import { WebSocketManager, AudioCapture } from './lib/websocket';
 import { DemoPlayer } from './lib/demoPlayer';
+import { t } from './lib/translations';
 
 interface TranscriptSegment {
   text: string;
@@ -307,7 +308,7 @@ export default function App() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">AI</span>
               </h1>
               <p className="text-[9px] text-[--color-text-muted] uppercase tracking-widest font-semibold">
-                {language === 'he' ? 'מערכת הדרכה בזמן אמת' : 'Real-Time Enablement Suite'}
+                {t('logoSubtitle', language)}
               </p>
             </div>
           </div>
@@ -332,7 +333,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span className="text-xs animate-bounce-subtle">🔊</span>
               <span className="text-[9px] uppercase tracking-wider text-[--color-text-muted] font-bold">
-                {language === 'he' ? 'סימולציית TTS פעילה' : 'TTS Simulation Active'}
+                {t('simulationActive', language)}
               </span>
             </div>
             {demoSpeaker && (
@@ -347,9 +348,7 @@ export default function App() {
                     ? 'text-[--color-accent-blue]'
                     : 'text-[--color-accent-emerald]'
                 }`}>
-                  {demoSpeaker === 'rep' 
-                    ? (language === 'he' ? 'נציג המכירות מדבר' : 'Sales Representative Speaking') 
-                    : (language === 'he' ? 'לקוח פוטנציאלי מדבר' : 'Prospect Speaking')}
+                  {demoSpeaker === 'rep' ? t('repSpeaking', language) : t('prospectSpeaking', language)}
                 </span>
               </div>
             )}
@@ -362,7 +361,7 @@ export default function App() {
                   />
                 </div>
                 <span className="text-[9px] text-[--color-text-muted] font-mono font-bold">
-                  {demoProgress.current}/{demoProgress.total} {language === 'he' ? 'משפטים' : 'phrases'}
+                  {demoProgress.current}/{demoProgress.total} {t('phrases', language)}
                 </span>
               </div>
             )}

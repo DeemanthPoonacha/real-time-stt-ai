@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { t } from '../lib/translations';
 
 interface TranscriptSegment {
   text: string;
@@ -35,8 +36,8 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
   const getSpeakerConfig = (speaker: string) => {
     if (speaker === 'rep') {
       return {
-        label: isRTL ? 'נציג מכירות' : 'Sales Rep',
-        avatarText: isRTL ? 'נמ' : 'SR',
+        label: t('salesRepRole', language),
+        avatarText: t('salesRepRole', language) === 'Sales Rep' ? 'SR' : 'נמ',
         colorClass: 'text-[--color-accent-blue]',
         avatarClass: 'speaker-avatar--rep',
         segmentClass: 'transcript-segment--rep'
@@ -44,16 +45,16 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
     }
     if (speaker === 'prospect') {
       return {
-        label: isRTL ? 'לקוח פוטנציאלי' : 'Prospect',
-        avatarText: isRTL ? 'לק' : 'PR',
+        label: t('prospectRole', language),
+        avatarText: t('prospectRole', language) === 'Prospect' ? 'PR' : 'לק',
         colorClass: 'text-[--color-accent-emerald]',
         avatarClass: 'speaker-avatar--prospect',
         segmentClass: 'transcript-segment--prospect'
       };
     }
     return {
-      label: isRTL ? 'דובר' : 'Speaker',
-      avatarText: isRTL ? 'דב' : 'SP',
+      label: t('speakerRole', language),
+      avatarText: t('speakerRole', language) === 'Speaker' ? 'SP' : 'דב',
       colorClass: 'text-[--color-text-muted]',
       avatarClass: 'speaker-avatar--unknown',
       segmentClass: ''
@@ -67,11 +68,11 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
         <div className="flex items-center gap-2.5">
           <div className="w-2 h-2 rounded-full bg-[--color-accent-emerald] animate-pulse" />
           <h2 className="text-xs font-bold text-[--color-text-primary] uppercase tracking-wider">
-            {isRTL ? 'תמליל שיחה בזמן אמת' : 'Live Conversation Transcript'}
+            {t('liveTranscriptTitle', language)}
           </h2>
         </div>
         <span className="text-[10px] font-bold text-[--color-text-muted] uppercase tracking-widest bg-white/[0.04] px-2 py-0.5 rounded-full">
-          {segments.length} {isRTL ? 'קטעים' : 'segments'}
+          {segments.length} {t('segments', language)}
         </span>
       </div>
 
@@ -92,10 +93,10 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
                 </svg>
               </div>
               <p className="text-[--color-text-muted] text-xs font-medium tracking-wide">
-                {isRTL ? 'זרם המיקרופון שקט' : 'Microphone stream is silent'}
+                {t('micSilent', language)}
               </p>
               <p className="text-[--color-text-muted] text-[10px] mt-1 opacity-70">
-                {isRTL ? 'הפעל את ההקלטה או את מצב הדמו כדי להתחיל בתמלול' : 'Activate the recording or demo mode to begin transcription'}
+                {t('micSilentSubtext', language)}
               </p>
             </div>
           ) : (

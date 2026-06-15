@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { t } from '../lib/translations';
 
 interface PlaybookPricing {
   price: string;
@@ -96,24 +97,22 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
     );
   }
 
-  const isHe = language === 'he';
-
   const sections: PlaybookSection[] = [
-    { key: 'pricing', title: isHe ? '💰 תוכניות תמחור' : '💰 Pricing Plans', items: playbook.pricing ? Object.entries(playbook.pricing).map(([k, v]) => ({ label: isHe ? `תוכנית ${k}: ${v.price}` : `${k}: ${v.price}`, detail: v.features?.join(', ') || '' })) : [] },
-    { key: 'opening', title: isHe ? '🎬 תסריטי פתיחה' : '🎬 Opening Scripts', items: playbook.opening_scripts?.map(s => ({ label: s.scenario, detail: s.script })) || [] },
-    { key: 'value', title: isHe ? '✨ הצעות ערך' : '✨ Value Props', items: playbook.value_propositions?.map(v => ({ label: v.headline, detail: v.detail })) || [] },
-    { key: 'closing', title: isHe ? '🎯 טכניקות סגירה' : '🎯 Closing Techniques', items: playbook.closing_techniques?.map(c => ({ label: c.name, detail: c.script })) || [] },
-    { key: 'competitors', title: isHe ? '⚔️ תסריטי מתחרים' : '⚔️ Competitor Tracks', items: playbook.competitor_comparisons?.map(c => ({ label: c.competitor, detail: c.talk_track })) || [] },
+    { key: 'pricing', title: t('pricingPlans', language), items: playbook.pricing ? Object.entries(playbook.pricing).map(([k, v]) => ({ label: language === 'he' ? `${t('planPlan', language)} ${k}: ${v.price}` : `${k}: ${v.price}`, detail: v.features?.join(', ') || '' })) : [] },
+    { key: 'opening', title: t('openingScripts', language), items: playbook.opening_scripts?.map(s => ({ label: s.scenario, detail: s.script })) || [] },
+    { key: 'value', title: t('valueProps', language), items: playbook.value_propositions?.map(v => ({ label: v.headline, detail: v.detail })) || [] },
+    { key: 'closing', title: t('closingTechniques', language), items: playbook.closing_techniques?.map(c => ({ label: c.name, detail: c.script })) || [] },
+    { key: 'competitors', title: t('competitorTracks', language), items: playbook.competitor_comparisons?.map(c => ({ label: c.competitor, detail: c.talk_track })) || [] },
   ];
 
   // Quick categories
   const categories = [
-    { key: 'all', label: isHe ? 'הכל' : 'All' },
-    { key: 'pricing', label: isHe ? 'תמחור' : 'Pricing' },
-    { key: 'opening', label: isHe ? 'פתיחה' : 'Opening' },
-    { key: 'value', label: isHe ? 'ערך' : 'Value' },
-    { key: 'closing', label: isHe ? 'סגירה' : 'Closing' },
-    { key: 'competitors', label: isHe ? 'מתחרים' : 'Battlecards' },
+    { key: 'all', label: t('all', language) },
+    { key: 'pricing', label: t('pricingCategory', language) },
+    { key: 'opening', label: t('openingCategory', language) },
+    { key: 'value', label: t('valueCategory', language) },
+    { key: 'closing', label: t('closingCategory', language) },
+    { key: 'competitors', label: t('competitorsCategory', language) },
   ];
 
   // Apply search query filter and category selection filter
@@ -136,7 +135,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
         <div className="flex items-center gap-2.5">
           <span className="text-base">📖</span>
           <h2 className="text-xs font-bold text-[--color-text-primary] uppercase tracking-wider">
-            {isHe ? 'ספר הדרכת מכירות' : 'Sales Playbook'}
+            {t('playbookTitle', language)}
           </h2>
         </div>
  
@@ -145,7 +144,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
           <input
             id="playbook-search"
             type="text"
-            placeholder={isHe ? 'חפש תסריטי שיחה, תמחור...' : 'Search talk tracks, pricing...'}
+            placeholder={t('searchPlaceholder', language)}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full bg-[--color-bg-secondary] border border-[--color-border] rounded-xl pl-9 pr-3 py-2 text-xs text-[--color-text-primary] placeholder-[--color-text-muted] outline-none focus:border-[--color-accent-blue] focus:ring-1 focus:ring-[--color-accent-blue-glow] transition-all duration-300 bg-opacity-70"
@@ -179,7 +178,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
       <div className="flex-grow overflow-y-auto p-3.5 space-y-2">
         {filteredSections.length === 0 ? (
           <div className="text-center py-12 text-[--color-text-muted] text-xs">
-            {isHe ? 'לא נמצאו סעיפים בספר ההדרכה המתאימים לחישוב' : 'No playbook sections found matching criteria'}
+            {t('noSectionsFound', language)}
           </div>
         ) : (
           filteredSections.map(section => (
@@ -214,11 +213,11 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
                           key={i}
                           className="group p-3.5 rounded-xl bg-white/[0.005] hover:bg-white/[0.02] border border-white/[0.02] hover:border-[--color-border] transition-all duration-200 cursor-pointer"
                           onClick={() => copyText(`${name}: ${price} (${item.detail})`, uniqueKey)}
-                          title={isHe ? 'לחץ להעתקת פרטי התוכנית' : 'Click to copy plan details'}
+                          title={t('clickToCopyPlan', language)}
                         >
                           <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
                             <span className="font-extrabold text-[10px] uppercase tracking-wider text-[--color-accent-blue]">
-                              {isHe ? `תוכנית ${name}` : `${name} Plan`}
+                              {language === 'he' ? `${t('planPlan', language)} ${name}` : `${name} ${t('planPlan', language)}`}
                             </span>
                             <span className="font-mono text-xs font-bold text-white bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
                               {price}
@@ -240,9 +239,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
                                 ? 'text-[--color-accent-emerald] opacity-100' 
                                 : 'text-[--color-accent-blue] opacity-0 group-hover:opacity-100'
                             }`}>
-                              {copiedItemKey === uniqueKey 
-                                ? (isHe ? '✓ תוכנית הועתקה' : '✓ Plan copied') 
-                                : (isHe ? '📋 העתק פרטי תוכנית' : '📋 Copy Plan Details')}
+                              {copiedItemKey === uniqueKey ? t('planCopied', language) : t('copyPlanDetails', language)}
                             </span>
                           </div>
                         </div>
@@ -256,7 +253,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
                           key={i}
                           className="group p-3 rounded-xl bg-white/[0.005] hover:bg-white/[0.02] border border-transparent hover:border-[--color-border] transition-all duration-200 cursor-pointer relative"
                           onClick={() => copyText(item.detail, uniqueKey)}
-                          title={isHe ? 'לחץ להעתקת התסריט' : 'Click to copy script'}
+                          title={t('clickToCopyScript', language)}
                         >
                           <p className="text-xs font-bold text-[--color-text-primary] mb-1">
                             {item.label}
@@ -270,9 +267,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
                                 ? 'text-[--color-accent-emerald] opacity-100' 
                                 : 'text-[--color-accent-blue] opacity-0 group-hover:opacity-100'
                             }`}>
-                              {copiedItemKey === uniqueKey 
-                                ? (isHe ? '✓ תסריט הועתק' : '✓ Script Copied') 
-                                : (isHe ? '📋 לחץ להעתקה' : '📋 Click to copy')}
+                              {copiedItemKey === uniqueKey ? t('scriptCopied', language) : t('clickToCopy', language)}
                             </span>
                           </div>
                         </div>
@@ -285,13 +280,13 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
           ))
         )}
       </div>
- 
+
       {/* Footer Playbook Meta */}
       {playbook.product && (
         <div className="px-5 py-3.5 border-t border-[--color-border] bg-white/[0.01] flex items-center justify-between flex-shrink-0">
           <div>
             <p className="text-[8px] text-[--color-text-muted] uppercase tracking-widest font-extrabold">
-              {isHe ? 'טווח ספר הדרכה' : 'Playbook Scope'}
+              {t('playbookScope', language)}
             </p>
             <p className="text-xs font-bold text-[--color-text-primary] mt-0.5">{playbook.product.name}</p>
             <p className="text-[10px] text-[--color-text-muted] mt-0.5 font-medium">{playbook.product.tagline}</p>
