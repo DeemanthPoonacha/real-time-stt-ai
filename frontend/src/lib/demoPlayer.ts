@@ -60,14 +60,16 @@ export class DemoPlayer {
       const femaleKeywords = ['female', 'samantha', 'karen', 'victoria', 'zira', 'google uk english female'];
 
       this._repVoice = fallback.find(v =>
-        maleKeywords.some(k => v.name.toLowerCase().includes(k))
+          maleKeywords.some(k => v.name.toLowerCase().includes(k))
       ) || fallback[0];
 
       this._prospectVoice = fallback.find(v =>
-        femaleKeywords.some(k => v.name.toLowerCase().includes(k))
+          femaleKeywords.some(k => v.name.toLowerCase().includes(k))
       ) || fallback[Math.min(1, fallback.length - 1)];
 
       console.log(`🎤 TTS voices loaded — Rep: "${this._repVoice?.name}", Prospect: "${this._prospectVoice?.name}"`);
+      const hebrewVoices = voices.filter(v => v.lang.startsWith('he') || v.lang.startsWith('iw'));
+      console.log(`🇮🇱 Available Hebrew TTS voices:`, hebrewVoices.map(v => `${v.name} (${v.lang})`));
     };
 
     // Voices may load asynchronously
@@ -166,17 +168,48 @@ export class DemoPlayer {
       // Cancel any ongoing speech first
       synth.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
-
       if (this.language === 'he') {
-        utterance.lang = 'he-IL';
         const heVoices = synth.getVoices().filter(v => v.lang.startsWith('he') || v.lang.startsWith('iw'));
         if (heVoices.length > 0) {
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'he-IL';
           utterance.voice = speaker === 'rep' ? heVoices[0] : (heVoices[1] || heVoices[0]);
+          utterance.pitch = speaker === 'rep' ? 1.0 : 1.15;
+          utterance.rate = 1.0 * this.speed;
+          utterance.volume = 0.8;
+          
+          utterance.onend = () => resolve();
+          utterance.onerror = (e) => {
+            console.warn('TTS error:', e);
+            resolve();
+          };
+          synth.speak(utterance);
+        } else {
+          console.log("🔊 No local Hebrew TTS voice found. Falling back to backend Google Translate TTS proxy...");
+          const ttsUrl = `${API_BASE}/api/tts?lang=he&text=${encodeURIComponent(text)}`;
+          const audio = document.createElement('audio');
+          audio.src = ttsUrl;
+          audio.playbackRate = this.speed;
+          audio.volume = 0.8;
+          
+          audio.onended = () => {
+            (this as any)._activeAudio = null;
+            resolve();
+          };
+          audio.onerror = (e) => {
+            console.warn("Google TTS audio play failed:", e);
+            (this as any)._activeAudio = null;
+            resolve();
+          };
+          
+          (this as any)._activeAudio = audio;
+          audio.play().catch(err => {
+            console.warn("Audio play blocked by browser autoplay policy:", err);
+            resolve();
+          });
         }
-        utterance.pitch = speaker === 'rep' ? 1.0 : 1.15;
-        utterance.rate = 1.0 * this.speed;
       } else {
+        const utterance = new SpeechSynthesisUtterance(text);
         if (speaker === 'rep') {
           utterance.voice = this._repVoice;
           utterance.pitch = 1.0;
@@ -186,32 +219,31 @@ export class DemoPlayer {
           utterance.pitch = 1.1;
           utterance.rate = 0.95 * this.speed;
         }
-      }
+        utterance.volume = 0.8;
 
-      utterance.volume = 0.8;
+        utterance.onend = () => resolve();
+        utterance.onerror = (e) => {
+          console.warn('TTS error:', e);
+          resolve();
+        };
 
-      utterance.onend = () => resolve();
-      utterance.onerror = (e) => {
-        console.warn('TTS error:', e);
-        resolve(); // Don't block the demo on TTS errors
-      };
+        synth.speak(utterance);
 
-      synth.speak(utterance);
+        // Chrome bug workaround: long utterances get paused after ~15s
+        const keepAlive = setInterval(() => {
+          if (!synth.speaking) {
+            clearInterval(keepAlive);
+            return;
+          }
+          synth.pause();
+          synth.resume();
+        }, 10000);
 
-      // Chrome bug workaround: long utterances get paused after ~15s
-      const keepAlive = setInterval(() => {
-        if (!synth.speaking) {
+        utterance.onend = () => {
           clearInterval(keepAlive);
-          return;
-        }
-        synth.pause();
-        synth.resume();
-      }, 10000);
-
-      utterance.onend = () => {
-        clearInterval(keepAlive);
-        resolve();
-      };
+          resolve();
+        };
+      }
     });
   }
 
@@ -221,6 +253,12 @@ export class DemoPlayer {
   stop() {
     this.isCancelled = true;
     window.speechSynthesis.cancel();
+    if ((this as any)._activeAudio) {
+      try {
+        (this as any)._activeAudio.pause();
+      } catch (e) {}
+      (this as any)._activeAudio = null;
+    }
     this.onSpeakingChange?.(null);
   }
 

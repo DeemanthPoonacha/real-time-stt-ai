@@ -6,6 +6,7 @@ interface CallStatsProps {
   transcriptCount: number;
   suggestionCount: number;
   objectionsDetected: number;
+  language: string;
 }
 
 /**
@@ -16,7 +17,8 @@ export default function CallStats({
   isActive, 
   transcriptCount, 
   suggestionCount, 
-  objectionsDetected 
+  objectionsDetected,
+  language
 }: CallStatsProps) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -37,9 +39,11 @@ export default function CallStats({
     return `${m}:${(s % 60).toString().padStart(2, '0')}`;
   };
 
+  const isHe = language === 'he';
+
   const stats = [
     { 
-      label: 'Call Duration', 
+      label: isHe ? 'משך שיחה' : 'Call Duration', 
       value: formatDuration(elapsed), 
       icon: '⏱️', 
       color: 'text-[--color-accent-blue]',
@@ -47,7 +51,7 @@ export default function CallStats({
       borderColor: 'rgba(56,189,248,0.12)'
     },
     { 
-      label: 'Transcripts', 
+      label: isHe ? 'תמלילים' : 'Transcripts', 
       value: transcriptCount.toString(), 
       icon: '💬', 
       color: 'text-[--color-accent-emerald]',
@@ -55,7 +59,7 @@ export default function CallStats({
       borderColor: 'rgba(16,185,129,0.12)'
     },
     { 
-      label: 'AI Coach Tips', 
+      label: isHe ? 'טיפים ממאמן ה-AI' : 'AI Coach Tips', 
       value: suggestionCount.toString(), 
       icon: '🤖', 
       color: 'text-[--color-accent-violet]',
@@ -63,7 +67,7 @@ export default function CallStats({
       borderColor: 'rgba(167,139,250,0.12)'
     },
     { 
-      label: 'Objections Blocked', 
+      label: isHe ? 'התנגדויות שנבלמו' : 'Objections Blocked', 
       value: objectionsDetected.toString(), 
       icon: '⚠️', 
       color: 'text-[--color-accent-rose]',

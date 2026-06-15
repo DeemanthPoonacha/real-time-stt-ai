@@ -12,6 +12,7 @@ interface CoachingPanelProps {
   suggestions: CoachingSuggestion[];
   streamingText: string;
   isStreaming: boolean;
+  language: string;
 }
 
 interface ParsedStream {
@@ -26,9 +27,11 @@ interface ParsedStream {
  * CoachingPanel — Renders AI coach feedback dynamically.
  * Features stateful click-to-copy tags, streaming animation logs, and category color codings.
  */
-export default function CoachingPanel({ suggestions, streamingText, isStreaming }: CoachingPanelProps) {
+export default function CoachingPanel({ suggestions, streamingText, isStreaming, language }: CoachingPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const isHe = language === 'he';
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -41,42 +44,42 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
       case 'objection':
         return { 
           icon: '⚠️', 
-          label: 'Objection Handling', 
+          label: isHe ? 'טיפול בהתנגדות' : 'Objection Handling', 
           cardClass: 'coaching-card--objection', 
           badge: 'bg-[--color-accent-rose]/10 text-[--color-accent-rose] border-[--color-accent-rose]/20' 
         };
       case 'tip':
         return { 
           icon: '💡', 
-          label: 'Coaching Tip', 
+          label: isHe ? 'טיפ אימון' : 'Coaching Tip', 
           cardClass: 'coaching-card--tip', 
           badge: 'bg-[--color-accent-emerald]/10 text-[--color-accent-emerald] border-[--color-accent-emerald]/20' 
         };
       case 'script':
         return { 
           icon: '💬', 
-          label: 'Suggested Script', 
+          label: isHe ? 'תסריט מוצע' : 'Suggested Script', 
           cardClass: 'coaching-card--script', 
           badge: 'bg-[--color-accent-blue]/10 text-[--color-accent-blue] border-[--color-accent-blue]/20' 
         };
       case 'alert':
         return { 
           icon: '⚡', 
-          label: 'Immediate Alert', 
+          label: isHe ? 'התרעה מיידית' : 'Immediate Alert', 
           cardClass: 'coaching-card--alert', 
           badge: 'bg-[--color-accent-amber]/10 text-[--color-accent-amber] border-[--color-accent-amber]/20' 
         };
       case 'closing':
         return { 
           icon: '🎯', 
-          label: 'Closing Opportunity', 
+          label: isHe ? 'הזדמנות סגירה' : 'Closing Opportunity', 
           cardClass: 'coaching-card--closing', 
           badge: 'bg-[--color-accent-violet]/10 text-[--color-accent-violet] border-[--color-accent-violet]/20' 
         };
       default:
         return { 
           icon: '💡', 
-          label: 'Tip', 
+          label: isHe ? 'טיפ' : 'Tip', 
           cardClass: 'coaching-card--tip', 
           badge: 'bg-[--color-accent-emerald]/10 text-[--color-accent-emerald] border-[--color-accent-emerald]/20' 
         };
@@ -153,17 +156,19 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
         <div className="flex items-center gap-2.5">
           <span className="text-base">🤖</span>
           <h2 className="text-xs font-bold text-[--color-text-primary] uppercase tracking-wider">
-            AI Sales Copilot
+            {isHe ? 'עוזר מכירות AI' : 'AI Sales Copilot'}
           </h2>
           {isStreaming && (
             <div className="flex items-center gap-1.5 ml-3 px-2 py-0.5 rounded-full bg-[--color-accent-blue]/5 border border-[--color-accent-blue]/15 animate-pulse">
               <div className="w-1.5 h-1.5 rounded-full bg-[--color-accent-blue]" />
-              <span className="text-[9px] text-[--color-accent-blue] font-bold uppercase tracking-wider animate-pulse">Analyzing audio</span>
+              <span className="text-[9px] text-[--color-accent-blue] font-bold uppercase tracking-wider animate-pulse">
+                {isHe ? 'מנתח שמע בזמן אמת...' : 'Analyzing audio'}
+              </span>
             </div>
           )}
         </div>
         <span className="text-[10px] font-bold text-[--color-text-muted] uppercase tracking-widest bg-white/[0.04] px-2 py-0.5 rounded-full">
-          {suggestions.length} tips
+          {suggestions.length} {isHe ? 'טיפים' : 'tips'}
         </span>
       </div>
 
@@ -176,10 +181,12 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                 <span className="text-2xl drop-shadow-[0_2px_10px_rgba(99,102,241,0.2)]">🤖</span>
               </div>
               <p className="text-[--color-text-muted] text-xs font-medium tracking-wide">
-                AI Coaching Engine Idle
+                {isHe ? 'מנוע אימון ה-AI בהמתנה' : 'AI Coaching Engine Idle'}
               </p>
               <p className="text-[--color-text-muted] text-[10px] mt-1 opacity-70">
-                Actionable tips and scripts will generate as the dialogue flows
+                {isHe 
+                  ? 'טיפים מעשיים ותסריטי שיחה ייווצרו במהלך השיחה' 
+                  : 'Actionable tips and scripts will generate as the dialogue flows'}
               </p>
             </div>
           ) : (
@@ -200,7 +207,9 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                       </span>
                       {suggestion.priority && (
                         <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ml-auto ${getPriorityBadge(suggestion.priority)}`}>
-                          {suggestion.priority}
+                          {suggestion.priority === 'high' ? (isHe ? 'גבוה' : 'high') : 
+                           suggestion.priority === 'medium' ? (isHe ? 'בינוני' : 'medium') : 
+                           suggestion.priority}
                         </span>
                       )}
                     </div>
@@ -223,7 +232,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                         <div className="bg-[--color-bg-secondary] rounded-xl p-3.5 border border-[--color-border] bg-opacity-80 transition-all duration-300 group-hover/script:border-white/10">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold">
-                              Dialogue talk track
+                              {isHe ? 'תסריט מוצע לשיחה' : 'Dialogue talk track'}
                             </span>
                             <button
                               onClick={() => copyToClipboard(suggestion.script!, index)}
@@ -231,10 +240,10 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                             >
                               {copiedIndex === index ? (
                                 <span className="text-[--color-accent-emerald] flex items-center gap-1">
-                                  <span>✓</span> Copied
+                                  <span>✓</span> {isHe ? 'הועתק' : 'Copied'}
                                 </span>
                               ) : (
-                                <span>📋 Copy Talk Track</span>
+                                <span>{isHe ? '📋 העתק תסריט' : '📋 Copy Talk Track'}</span>
                               )}
                             </button>
                           </div>
@@ -257,7 +266,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-[--color-accent-blue] animate-ping" />
                         <span className="text-[9px] font-extrabold uppercase tracking-widest text-[--color-accent-blue]">
-                          Analyzing Speech...
+                          {isHe ? 'מנתח דיבור...' : 'Analyzing Speech...'}
                         </span>
                       </div>
                       <div className="space-y-2 py-1">
@@ -275,11 +284,13 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                       <span className="text-sm">{config.icon}</span>
                       <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${config.badge} flex items-center gap-1.5`}>
                         <span className="w-1 h-1 rounded-full bg-current animate-pulse" />
-                        <span>Live {config.label}</span>
+                        <span>{isHe ? `${config.label} בזמן אמת` : `Live ${config.label}`}</span>
                       </span>
                       {parsed.priority && (
                         <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ml-auto ${getPriorityBadge(parsed.priority)}`}>
-                          {parsed.priority}
+                          {parsed.priority === 'high' ? (isHe ? 'גבוה' : 'high') : 
+                           parsed.priority === 'medium' ? (isHe ? 'בינוני' : 'medium') : 
+                           parsed.priority}
                         </span>
                       )}
                     </div>
@@ -301,7 +312,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                         <div className="bg-[--color-bg-secondary] rounded-xl p-3.5 border border-[--color-border] bg-opacity-80">
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold">
-                              Dialogue talk track
+                              {isHe ? 'תסריט מוצע לשיחה' : 'Dialogue talk track'}
                             </span>
                           </div>
                           <p className="text-xs text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10">

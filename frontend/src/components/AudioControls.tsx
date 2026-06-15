@@ -28,6 +28,7 @@ export default function AudioControls({
 }: AudioControlsProps) {
   const bars = 14;
   const isActive = isRecording || isDemo;
+  const isHe = language === 'he';
 
   return (
     <div className="flex items-center gap-5">
@@ -37,7 +38,7 @@ export default function AudioControls({
         onClick={onToggleRecording}
         disabled={isDemo}
         className={`mic-button ${isRecording ? 'mic-button--active' : ''} ${isDemo ? 'opacity-40 cursor-not-allowed' : ''}`}
-        title={isRecording ? 'Stop Session' : 'Start Mic Stream'}
+        title={isRecording ? (isHe ? 'עצור מפגש' : 'Stop Session') : (isHe ? 'הפעל מיקרופון' : 'Start Mic Stream')}
       >
         {isRecording ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
@@ -74,7 +75,7 @@ export default function AudioControls({
           })}
         </div>
         <span className="text-[8px] text-[--color-text-muted] uppercase tracking-widest font-extrabold">
-          {isActive ? 'Live Stream' : 'Idle'}
+          {isActive ? (isHe ? 'שידור חי' : 'Live Stream') : (isHe ? 'המתנה' : 'Idle')}
         </span>
       </div>
 
@@ -90,9 +91,9 @@ export default function AudioControls({
           'status-dot--disconnected'
         }`} />
         <span className="text-[10px] text-[--color-text-secondary] uppercase tracking-wider font-bold">
-          {connectionState === 'connected' ? 'Connected' :
-           connectionState === 'processing' ? 'Processing' :
-           connectionState === 'error' ? 'Error' : 'Offline'}
+          {connectionState === 'connected' ? (isHe ? 'מחובר' : 'Connected') :
+           connectionState === 'processing' ? (isHe ? 'מעבד' : 'Processing') :
+           connectionState === 'error' ? (isHe ? 'שגיאה' : 'Error') : (isHe ? 'לא מחובר' : 'Offline')}
         </span>
       </div>
 
@@ -140,7 +141,7 @@ export default function AudioControls({
             : 'bg-white/[0.02] border border-[--color-border] text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-white/[0.05] hover:border-[--color-border-bright]'
         } ${isRecording ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.03]'}`}
       >
-        <span>{isDemo ? '⏹ Stop Demo' : '▶ Play Demo'}</span>
+        <span>{isDemo ? (isHe ? '⏹ עצור דמו' : '⏹ Stop Demo') : (isHe ? '▶ הפעל דמו' : '▶ Play Demo')}</span>
       </button>
 
       {/* Reset Button */}
@@ -148,9 +149,9 @@ export default function AudioControls({
         id="reset-btn"
         onClick={onReset}
         className="p-2 px-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-[--color-text-muted] bg-white/[0.02] border border-[--color-border] hover:text-[--color-accent-rose] hover:border-[--color-accent-rose] hover:bg-[rgba(244,63,94,0.05)] transition-all duration-300 cursor-pointer hover:scale-[1.03]"
-        title="Reset Current Session"
+        title={isHe ? 'אפס מפגש נוכחי' : 'Reset Current Session'}
       >
-        Reset
+        {isHe ? 'איפוס' : 'Reset'}
       </button>
     </div>
   );

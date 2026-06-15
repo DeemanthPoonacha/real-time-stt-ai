@@ -21,7 +21,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import httpx
 
 from config import settings, DATA_DIR
 from stt_engine import STTEngine
@@ -104,22 +106,24 @@ async def health_check():
 
 
 @app.get("/api/playbook")
-async def get_playbook():
+async def get_playbook(language: str = "en"):
     """Get the sales playbook data."""
-    playbook_path = DATA_DIR / "sales_playbook.json"
+    file_name = "sales_playbook_he.json" if language == "he" else "sales_playbook.json"
+    playbook_path = DATA_DIR / file_name
     if not playbook_path.exists():
         raise HTTPException(status_code=404, detail="Playbook not found")
-    with open(playbook_path, "r") as f:
+    with open(playbook_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 @app.get("/api/objections")
-async def get_objections():
+async def get_objections(language: str = "en"):
     """Get the objection handling scripts."""
-    objections_path = DATA_DIR / "objection_scripts.json"
+    file_name = "objection_scripts_he.json" if language == "he" else "objection_scripts.json"
+    objections_path = DATA_DIR / file_name
     if not objections_path.exists():
         raise HTTPException(status_code=404, detail="Objection scripts not found")
-    with open(objections_path, "r") as f:
+    with open(objections_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -166,6 +170,35 @@ async def get_demo_transcript(language: str = "en"):
         raise HTTPException(status_code=404, detail="Demo transcript not found")
     with open(demo_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+@app.get("/api/tts")
+async def get_tts(text: str, lang: str = "he"):
+    """
+    Proxy Google Translate TTS to avoid CORS / Referrer policy / decoder issues.
+    """
+    import urllib.parse
+    encoded_text = urllib.parse.quote(text)
+    tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang}&client=tw-ob&q={encoded_text}"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    
+    client = httpx.AsyncClient()
+    
+    async def stream_generator():
+        try:
+            async with client.stream("GET", tts_url, headers=headers, follow_redirects=True) as r:
+                r.raise_for_status()
+                async for chunk in r.aiter_bytes():
+                    yield chunk
+        except Exception as e:
+            logger.error(f"Error streaming TTS from Google: {e}")
+        finally:
+            await client.aclose()
+            
+    return StreamingResponse(stream_generator(), media_type="audio/mpeg")
 
 
 # --- WebSocket: Main Coaching Pipeline ---

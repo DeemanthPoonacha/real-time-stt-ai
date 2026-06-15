@@ -307,7 +307,7 @@ export default function App() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">AI</span>
               </h1>
               <p className="text-[9px] text-[--color-text-muted] uppercase tracking-widest font-semibold">
-                Real-Time Enablement Suite
+                {language === 'he' ? 'מערכת הדרכה בזמן אמת' : 'Real-Time Enablement Suite'}
               </p>
             </div>
           </div>
@@ -332,7 +332,7 @@ export default function App() {
             <div className="flex items-center gap-2">
               <span className="text-xs animate-bounce-subtle">🔊</span>
               <span className="text-[9px] uppercase tracking-wider text-[--color-text-muted] font-bold">
-                TTS Simulation Active
+                {language === 'he' ? 'סימולציית TTS פעילה' : 'TTS Simulation Active'}
               </span>
             </div>
             {demoSpeaker && (
@@ -347,7 +347,9 @@ export default function App() {
                     ? 'text-[--color-accent-blue]'
                     : 'text-[--color-accent-emerald]'
                 }`}>
-                  {demoSpeaker === 'rep' ? 'Sales Representative Speaking' : 'Prospect Speaking'}
+                  {demoSpeaker === 'rep' 
+                    ? (language === 'he' ? 'נציג המכירות מדבר' : 'Sales Representative Speaking') 
+                    : (language === 'he' ? 'לקוח פוטנציאלי מדבר' : 'Prospect Speaking')}
                 </span>
               </div>
             )}
@@ -360,7 +362,7 @@ export default function App() {
                   />
                 </div>
                 <span className="text-[9px] text-[--color-text-muted] font-mono font-bold">
-                  {demoProgress.current}/{demoProgress.total} phrases
+                  {demoProgress.current}/{demoProgress.total} {language === 'he' ? 'משפטים' : 'phrases'}
                 </span>
               </div>
             )}
@@ -376,6 +378,7 @@ export default function App() {
           transcriptCount={transcriptSegments.length}
           suggestionCount={coachingSuggestions.length}
           objectionsDetected={objectionsDetected}
+          language={language}
         />
       </div>
 
@@ -395,12 +398,13 @@ export default function App() {
             suggestions={coachingSuggestions}
             streamingText={streamingText}
             isStreaming={isStreaming}
+            language={language}
           />
         </div>
 
         {/* Right: Playbook */}
         <div className="col-span-3 h-full flex flex-col min-h-0">
-          <PlaybookSidebar />
+          <PlaybookSidebar language={language} />
         </div>
       </main>
     </div>
