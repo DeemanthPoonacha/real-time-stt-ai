@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { t } from '../lib/translations';
 
 interface PlaybookPricing {
@@ -50,12 +50,56 @@ interface PlaybookSection {
  * PlaybookSidebar — Dynamic lookup for company product playbook details.
  * Supports keyword search, category quick-filter chips, and stateful copying.
  */
-export default function PlaybookSidebar({ language = 'en' }: { language?: string }) {
+export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs = [] }: { language?: string; activeRetrievedDocs?: any[] }) {
   const [playbook, setPlaybook] = useState<PlaybookData | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [copiedItemKey, setCopiedItemKey] = useState<string | null>(null);
+
+  const getSectionKeyForDoc = useCallback((doc: any) => {
+    const docSection = (doc.section || '').toLowerCase();
+    const docSourceType = (doc.source_type || '').toLowerCase();
+    const docSource = (doc.source || '').toLowerCase();
+    
+    if (docSection.includes('pricing') || docSourceType === 'pricing' || docSource.includes('pricing')) return 'pricing';
+    if (docSection.includes('opening_scripts') || docSourceType === 'opening' || docSource.includes('opening')) return 'opening';
+    if (docSection.includes('value_propositions') || docSourceType === 'value' || docSource.includes('value')) return 'value';
+    if (docSection.includes('closing_techniques') || docSourceType === 'closing' || docSource.includes('closing')) return 'closing';
+    if (docSection.includes('competitor_comparisons') || docSourceType === 'competitor' || docSection.includes('competitors') || docSource.includes('competitor')) return 'competitors';
+    
+    if (docSource.includes('objection') || docSourceType === 'objection') return 'competitors';
+    
+    return 'value';
+  }, []);
+
+  const isMatchedItem = useCallback((sectionKey: string, itemLabel: string, itemDetail: string) => {
+    if (!activeRetrievedDocs || activeRetrievedDocs.length === 0) return false;
+    
+    return activeRetrievedDocs.some(doc => {
+      const docSection = doc.section || '';
+      const docSourceType = doc.source_type || '';
+      
+      let sectionMatch = false;
+      if (sectionKey === 'pricing' && (docSection.includes('pricing') || docSourceType === 'pricing')) sectionMatch = true;
+      if (sectionKey === 'opening' && (docSection.includes('opening_scripts') || docSourceType === 'opening')) sectionMatch = true;
+      if (sectionKey === 'value' && (docSection.includes('value_propositions') || docSourceType === 'value')) sectionMatch = true;
+      if (sectionKey === 'closing' && (docSection.includes('closing_techniques') || docSourceType === 'closing')) sectionMatch = true;
+      if (sectionKey === 'competitors' && (docSection.includes('competitor_comparisons') || docSourceType === 'competitor')) sectionMatch = true;
+      
+      if (!sectionMatch) return false;
+      
+      const textLower = (doc.text || '').toLowerCase();
+      let labelLower = (itemLabel || '').toLowerCase();
+      if (sectionKey === 'pricing' && labelLower.includes(':')) {
+        labelLower = labelLower.split(':')[0].trim();
+      }
+      
+      const detailLower = (itemDetail || '').toLowerCase();
+      
+      return textLower.includes(labelLower) || textLower.includes(detailLower) || detailLower.includes(textLower);
+    });
+  }, [activeRetrievedDocs]);
 
   useEffect(() => {
     fetch(`/api/playbook?language=${language}`)
@@ -79,6 +123,17 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
       setTimeout(() => setCopiedItemKey(null), 2000);
     });
   };
+
+  useEffect(() => {
+    if (!activeRetrievedDocs || activeRetrievedDocs.length === 0 || !playbook) return;
+
+    const matchedDoc = activeRetrievedDocs[0];
+    if (matchedDoc) {
+      const sectionKey = getSectionKeyForDoc(matchedDoc);
+      setExpandedSection(sectionKey);
+      setActiveCategory(prev => (prev === 'all' || prev === sectionKey) ? prev : 'all');
+    }
+  }, [activeRetrievedDocs, playbook, getSectionKeyForDoc]);
 
   if (!playbook) {
     return (
@@ -105,6 +160,59 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
     { key: 'competitors', title: t('competitorTracks', language), items: playbook.competitor_comparisons?.map(c => ({ label: c.competitor, detail: c.talk_track })) || [] },
   ];
 
+  const dynamicSections = sections.map(section => {
+    const currentItems = [...section.items];
+    
+    if (activeRetrievedDocs && activeRetrievedDocs.length > 0) {
+      activeRetrievedDocs.forEach(doc => {
+        const targetSectionKey = getSectionKeyForDoc(doc);
+        if (targetSectionKey !== section.key) return;
+        
+        const textLower = (doc.text || '').toLowerCase();
+        
+        const alreadyExists = currentItems.some(item => {
+          const itemLabelLower = (item.label || '').toLowerCase();
+          const itemDetailLower = (item.detail || '').toLowerCase();
+          return textLower.includes(itemLabelLower) || textLower.includes(itemDetailLower) || itemDetailLower.includes(textLower);
+        });
+        
+        if (!alreadyExists) {
+          let label = doc.section || (language === 'he' ? 'מידע מתוכנית המכירות' : 'Playbook Context');
+          let detail = doc.text;
+          
+          if (doc.text.includes('\n')) {
+            const lines = doc.text.split('\n');
+            let category = '';
+            let responseText = '';
+            
+            for (const line of lines) {
+              const lower = line.toLowerCase();
+              if (lower.startsWith('category:') || lower.startsWith('objection:') || lower.startsWith('headline:') || lower.startsWith('name:') || lower.startsWith('scenario:')) {
+                category = line.split(':')[1]?.trim() || '';
+              } else if (lower.startsWith('response:') || lower.startsWith('primary_script:') || lower.startsWith('response_strategy:') || lower.startsWith('detail:') || lower.startsWith('script:') || lower.startsWith('talk track:') || lower.startsWith('talk_track:')) {
+                responseText = line.split(':')[1]?.trim() || '';
+              }
+            }
+            if (category) label = category;
+            if (responseText) detail = responseText;
+          }
+          
+          if (label.length > 50) label = label.substring(0, 47) + '...';
+          
+          currentItems.push({
+            label,
+            detail
+          });
+        }
+      });
+    }
+    
+    return {
+      ...section,
+      items: currentItems
+    };
+  });
+
   // Quick categories
   const categories = [
     { key: 'all', label: t('all', language) },
@@ -116,7 +224,7 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
   ];
 
   // Apply search query filter and category selection filter
-  const filteredSections = sections
+  const filteredSections = dynamicSections
     .filter(s => activeCategory === 'all' || s.key === activeCategory)
     .map(s => {
       const filteredItems = s.items.filter(item =>
@@ -207,18 +315,30 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
                       const name = parts[0]?.trim() || '';
                       const price = parts[1]?.trim() || '';
                       const uniqueKey = `${section.key}-${i}`;
+                      const isMatched = isMatchedItem(section.key, item.label, item.detail);
                       
                       return (
                         <div
                           key={i}
-                          className="group p-3.5 rounded-xl bg-white/[0.005] hover:bg-white/[0.02] border border-white/[0.02] hover:border-[--color-border] transition-all duration-200 cursor-pointer"
+                          className={`group p-3.5 rounded-xl transition-all duration-200 cursor-pointer border ${
+                            isMatched
+                              ? 'bg-[rgba(99,102,241,0.08)] border-[--color-accent-blue]/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                              : 'bg-white/[0.005] border-white/[0.02] hover:bg-white/[0.02] hover:border-[--color-border]'
+                          }`}
                           onClick={() => copyText(`${name}: ${price} (${item.detail})`, uniqueKey)}
                           title={t('clickToCopyPlan', language)}
                         >
                           <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
-                            <span className="font-extrabold text-[10px] uppercase tracking-wider text-[--color-accent-blue]">
-                              {language === 'he' ? `${t('planPlan', language)} ${name}` : `${name} ${t('planPlan', language)}`}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-[10px] uppercase tracking-wider text-[--color-accent-blue]">
+                                {language === 'he' ? `${t('planPlan', language)} ${name}` : `${name} ${t('planPlan', language)}`}
+                              </span>
+                              {isMatched && (
+                                <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[--color-accent-blue]/20 border border-[--color-accent-blue]/35 text-[--color-text-primary] animate-pulse">
+                                  {language === 'he' ? 'התאמה' : 'Match'}
+                                </span>
+                              )}
+                            </div>
                             <span className="font-mono text-xs font-bold text-white bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
                               {price}
                             </span>
@@ -248,16 +368,28 @@ export default function PlaybookSidebar({ language = 'en' }: { language?: string
                   ) : (
                     section.items.map((item, i) => {
                       const uniqueKey = `${section.key}-${i}`;
+                      const isMatched = isMatchedItem(section.key, item.label, item.detail);
                       return (
                         <div
                           key={i}
-                          className="group p-3 rounded-xl bg-white/[0.005] hover:bg-white/[0.02] border border-transparent hover:border-[--color-border] transition-all duration-200 cursor-pointer relative"
+                          className={`group p-3 rounded-xl border transition-all duration-200 cursor-pointer relative ${
+                            isMatched
+                              ? 'bg-[rgba(99,102,241,0.08)] border-[--color-accent-blue]/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                              : 'border-transparent hover:border-[--color-border] bg-white/[0.005] hover:bg-white/[0.02]'
+                          }`}
                           onClick={() => copyText(item.detail, uniqueKey)}
                           title={t('clickToCopyScript', language)}
                         >
-                          <p className="text-xs font-bold text-[--color-text-primary] mb-1">
-                            {item.label}
-                          </p>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-xs font-bold text-[--color-text-primary] mb-0">
+                              {item.label}
+                            </p>
+                            {isMatched && (
+                              <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[--color-accent-blue]/20 border border-[--color-accent-blue]/35 text-[--color-text-primary] animate-pulse">
+                                {language === 'he' ? 'התאמה לתוכנית' : 'Playbook Match'}
+                              </span>
+                              )}
+                          </div>
                           <p className="text-[11px] text-[--color-text-secondary] leading-relaxed line-clamp-3">
                             {item.detail}
                           </p>

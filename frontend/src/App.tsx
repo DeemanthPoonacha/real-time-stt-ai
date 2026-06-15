@@ -21,6 +21,13 @@ interface CoachingSuggestion {
   title?: string;
   priority?: string;
   script?: string;
+  retrieved_docs?: Array<{
+    text: string;
+    source: string;
+    source_type: string;
+    section?: string;
+    distance?: number;
+  }>;
 }
 
 export default function App() {
@@ -38,6 +45,7 @@ export default function App() {
   const [objectionsDetected, setObjectionsDetected] = useState<number>(0);
   const [demoSpeaker, setDemoSpeaker] = useState<string | null>(null); // who is currently speaking in demo
   const [demoProgress, setDemoProgress] = useState<{ current: number; total: number; speaker: string } | null>(null); // {current, total}
+  const [activeRetrievedDocs, setActiveRetrievedDocs] = useState<any[]>([]);
 
   // --- Refs ---
   const wsRef = useRef<WebSocketManager | null>(null);
@@ -47,6 +55,8 @@ export default function App() {
   const demoSpeakerRef = useRef<string | null>(demoSpeaker);
   const latestRepScriptRef = useRef<string | null>(null);
   const isStreamingRef = useRef<boolean>(isStreaming);
+  const awaitingNewProspectTurnRef = useRef<boolean>(false);
+  const activeRetrievedDocsRef = useRef<any[]>([]);
 
   // Keep refs in sync with state for use inside useCallback closures
   useEffect(() => {
@@ -61,18 +71,31 @@ export default function App() {
     isStreamingRef.current = isStreaming;
   }, [isStreaming]);
 
+  useEffect(() => {
+    activeRetrievedDocsRef.current = activeRetrievedDocs;
+  }, [activeRetrievedDocs]);
+
   // --- WebSocket Message Handler ---
   const handleMessage = useCallback((data: any) => {
     switch (data.type) {
       case 'transcript':
         // Map transcript to current speaker if in demo mode, prioritizing backend speaker
         const currentSpeaker = data.speaker || (isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : 'unknown');
-        // If representative starts speaking in live mode, clear previous coaching suggestions
+        
+        // If representative starts speaking in live mode, prepare to clear suggestions when next prospect turn starts
         if (currentSpeaker === 'rep') {
-          setCoachingSuggestions([]);
-          setStreamingText('');
-          setIsStreaming(false);
+          awaitingNewProspectTurnRef.current = true;
+        } else if (currentSpeaker === 'prospect') {
+          // Prospect starts speaking: clear suggestions if rep spoke since last time
+          if (awaitingNewProspectTurnRef.current) {
+            setCoachingSuggestions([]);
+            setActiveRetrievedDocs([]);
+            setStreamingText('');
+            setIsStreaming(false);
+            awaitingNewProspectTurnRef.current = false;
+          }
         }
+
         setTranscriptSegments(prev => [...prev, {
           text: data.text,
           speaker: currentSpeaker,
@@ -81,9 +104,18 @@ export default function App() {
         }]);
         break;
 
+      case 'retrieved_docs':
+        setActiveRetrievedDocs(data.docs || []);
+        break;
+
       case 'coaching':
         if (data.data) {
-          setCoachingSuggestions(prev => [...prev, data.data]); // Append suggestions
+          // Attach the activeRetrievedDocs to the finalized suggestion card
+          const newSuggestion = {
+            ...data.data,
+            retrieved_docs: activeRetrievedDocsRef.current
+          };
+          setCoachingSuggestions(prev => [...prev, newSuggestion]); // Append suggestions
           if (data.data.script) {
             latestRepScriptRef.current = data.data.script;
             if (demoRef.current) {
@@ -151,9 +183,8 @@ export default function App() {
     if (demoRef.current) {
       demoRef.current.triggerRepresentativeResponse(script);
     }
-    setCoachingSuggestions([]);
-    setStreamingText('');
-    setIsStreaming(false);
+    awaitingNewProspectTurnRef.current = true;
+    setActiveRetrievedDocs([]);
   }, []);
 
   // --- Toggle Recording ---
@@ -170,9 +201,11 @@ export default function App() {
       // Start
       setTranscriptSegments([]);
       setCoachingSuggestions([]);
+      setActiveRetrievedDocs([]);
       setStreamingText('');
       setIsStreaming(false);
       setObjectionsDetected(0);
+      awaitingNewProspectTurnRef.current = false;
 
       const ws = new WebSocketManager(handleMessage, handleStateChange);
       ws.connect('/ws/coaching');
@@ -211,13 +244,16 @@ export default function App() {
       setDemoProgress(null);
       setConnectionState('disconnected');
       latestRepScriptRef.current = null;
+      awaitingNewProspectTurnRef.current = false;
     } else {
       // Connect to coaching WS
       setTranscriptSegments([]);
       setCoachingSuggestions([]);
+      setActiveRetrievedDocs([]);
       setStreamingText('');
       setIsStreaming(false);
       setObjectionsDetected(0);
+      awaitingNewProspectTurnRef.current = false;
 
       const ws = new WebSocketManager(handleMessage, handleStateChange);
       ws.connect('/ws/coaching');
@@ -238,6 +274,13 @@ export default function App() {
         },
         onSpeakingChange: (speaker) => {
           setDemoSpeaker(speaker);
+          if (speaker === 'prospect' && awaitingNewProspectTurnRef.current) {
+            setCoachingSuggestions([]);
+            setActiveRetrievedDocs([]);
+            setStreamingText('');
+            setIsStreaming(false);
+            awaitingNewProspectTurnRef.current = false;
+          }
         },
         onProgress: (progress) => {
           setDemoProgress(progress);
@@ -302,6 +345,7 @@ export default function App() {
     setIsDemo(false);
     setTranscriptSegments([]);
     setCoachingSuggestions([]);
+    setActiveRetrievedDocs([]);
     setStreamingText('');
     setIsStreaming(false);
     setCallStartTime(null);
@@ -311,6 +355,7 @@ export default function App() {
     setDemoProgress(null);
     setConnectionState('disconnected');
     latestRepScriptRef.current = null;
+    awaitingNewProspectTurnRef.current = false;
     window.speechSynthesis.cancel();
   }, []);
 
@@ -449,6 +494,7 @@ export default function App() {
             isStreaming={isStreaming}
             language={language}
             onSpeakScript={isDemo ? handleSpeakSuggestedScript : undefined}
+            activeRetrievedDocs={activeRetrievedDocs}
           />
         </div>
 

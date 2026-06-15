@@ -471,8 +471,23 @@ async def coaching_websocket(websocket: WebSocket):
 async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str, speaker: str = "unknown", language: str = "en"):
     """Shared helper: stream coaching from AI coach and send structured result."""
     try:
+        async def on_rag(results):
+            retrieved_docs = []
+            for doc in results:
+                retrieved_docs.append({
+                    "text": doc["text"],
+                    "source": doc["metadata"].get("source", "unknown"),
+                    "source_type": doc["metadata"].get("source_type", "tip"),
+                    "section": doc["metadata"].get("section", ""),
+                    "distance": float(doc.get("distance", 0.0))
+                })
+            await send_json({
+                "type": "retrieved_docs",
+                "docs": retrieved_docs
+            })
+
         full_response = ""
-        async for chunk in ai_coach.get_coaching(transcript_text, speaker=speaker, language=language):
+        async for chunk in ai_coach.get_coaching(transcript_text, speaker=speaker, language=language, on_rag_retrieved=on_rag):
             full_response += chunk
             await send_json({
                 "type": "coaching_stream",
@@ -591,8 +606,23 @@ async def demo_websocket(websocket: WebSocket):
                 # Generate AI coaching for prospect's speech
                 if segment.get("speaker") == "prospect":
                     try:
+                        async def on_rag(results):
+                            retrieved_docs = []
+                            for doc in results:
+                                retrieved_docs.append({
+                                    "text": doc["text"],
+                                    "source": doc["metadata"].get("source", "unknown"),
+                                    "source_type": doc["metadata"].get("source_type", "tip"),
+                                    "section": doc["metadata"].get("section", ""),
+                                    "distance": float(doc.get("distance", 0.0))
+                                })
+                            await send_json({
+                                "type": "retrieved_docs",
+                                "docs": retrieved_docs
+                            })
+
                         full_response = ""
-                        async for chunk in ai_coach.get_coaching(segment["text"], speaker=segment.get("speaker", "unknown"), language=language):
+                        async for chunk in ai_coach.get_coaching(segment["text"], speaker=segment.get("speaker", "unknown"), language=language, on_rag_retrieved=on_rag):
                             full_response += chunk
                             await send_json({
                                 "type": "coaching_stream",

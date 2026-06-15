@@ -47,11 +47,11 @@ class AICoach:
         self.model = settings.LLM_MODEL
         self.conversation_history: list[dict] = []
         self.max_history = 10  # Keep last N transcript segments for context
+        self.latest_rag_results = []
 
-    def _build_system_prompt(self, transcript: str, language: str = "en") -> str:
+    def _build_system_prompt(self, transcript: str, rag_results: list[dict], language: str = "en") -> str:
         """Build the system prompt with RAG context injected."""
-        # Search for relevant playbook context based on the transcript
-        rag_results = self.rag_engine.search(transcript, top_k=settings.RAG_TOP_K, language=language)
+        self.latest_rag_results = rag_results
 
         # Format RAG context
         if rag_results:
@@ -113,7 +113,7 @@ Example of Hebrew output:
         if len(self.conversation_history) > self.max_history * 2:
             self.conversation_history = self.conversation_history[-self.max_history:]
 
-    async def get_coaching(self, transcript_text: str, speaker: str = "unknown", language: str = "en") -> AsyncGenerator[str, None]:
+    async def get_coaching(self, transcript_text: str, speaker: str = "unknown", language: str = "en", on_rag_retrieved = None) -> AsyncGenerator[str, None]:
         """
         Get streaming coaching suggestions for the given transcript text.
 
@@ -125,7 +125,21 @@ Example of Hebrew output:
 
         # Build context
         conversation_context = self._get_conversation_context()
-        system_prompt = self._build_system_prompt(conversation_context, language=language)
+
+        # Search for relevant playbook context based on the transcript
+        rag_results = self.rag_engine.search(conversation_context, top_k=settings.RAG_TOP_K, language=language)
+        self.latest_rag_results = rag_results
+
+        if on_rag_retrieved:
+            try:
+                if asyncio.iscoroutinefunction(on_rag_retrieved):
+                    await on_rag_retrieved(rag_results)
+                else:
+                    on_rag_retrieved(rag_results)
+            except Exception as e:
+                logger.warning(f"Error in on_rag_retrieved callback: {e}")
+
+        system_prompt = self._build_system_prompt(conversation_context, rag_results, language=language)
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -169,6 +183,7 @@ Example of Hebrew output:
         """Generate a high-quality coaching suggestion locally using ChromaDB RAG search."""
         try:
             results = self.rag_engine.search(text, top_k=1, language=language)
+            self.latest_rag_results = results
             if results:
                 best_match = results[0]
                 source_type = best_match["metadata"].get("source_type", "tip")
@@ -277,4 +292,5 @@ Example of Hebrew output:
     def reset(self):
         """Reset conversation history for a new call."""
         self.conversation_history = []
+        self.latest_rag_results = []
         logger.info("AI Coach conversation history reset")
