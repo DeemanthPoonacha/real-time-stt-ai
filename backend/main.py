@@ -158,12 +158,13 @@ async def ingest_documents():
 
 
 @app.get("/api/demo-transcript")
-async def get_demo_transcript():
+async def get_demo_transcript(language: str = "en"):
     """Get the demo transcript for frontend-driven TTS playback."""
-    demo_path = DATA_DIR / "demo_transcript.json"
+    file_name = "demo_transcript_he.json" if language == "he" else "demo_transcript.json"
+    demo_path = DATA_DIR / file_name
     if not demo_path.exists():
         raise HTTPException(status_code=404, detail="Demo transcript not found")
-    with open(demo_path, "r") as f:
+    with open(demo_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -250,7 +251,7 @@ async def coaching_websocket(websocket: WebSocket):
                             coaching_task.cancel()
 
                         coaching_task = asyncio.create_task(
-                            _stream_coaching(ai_coach, send_json, transcript_text)
+                            _stream_coaching(ai_coach, send_json, transcript_text, language=language)
                         )
 
                 await send_json({"type": "status", "state": "listening"})
@@ -270,7 +271,7 @@ async def coaching_websocket(websocket: WebSocket):
                         coaching_task.cancel()
 
                     coaching_task = asyncio.create_task(
-                        _stream_coaching(ai_coach, send_json, transcript_text)
+                        _stream_coaching(ai_coach, send_json, transcript_text, language=language)
                     )
 
                 await send_json({"type": "status", "state": "listening"})
@@ -282,11 +283,11 @@ async def coaching_websocket(websocket: WebSocket):
         await send_json({"type": "error", "message": str(e)[:200]})
 
 
-async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str):
+async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str, language: str = "en"):
     """Shared helper: stream coaching from AI coach and send structured result."""
     try:
         full_response = ""
-        async for chunk in ai_coach.get_coaching(transcript_text):
+        async for chunk in ai_coach.get_coaching(transcript_text, language=language):
             full_response += chunk
             await send_json({
                 "type": "coaching_stream",
@@ -306,7 +307,7 @@ async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str):
             parsed = {
                 "type": "tip",
                 "priority": "medium",
-                "title": "Coaching Tip",
+                "title": "Coaching Tip" if language != "he" else "טיפ אימון",
                 "suggestion": full_response[:300],
                 "script": "",
             }
@@ -344,21 +345,7 @@ async def demo_websocket(websocket: WebSocket):
     logger.info("🎬 Demo WebSocket connected")
 
     ai_coach = AICoach(rag_engine)
-
-    # Load demo transcript
-    demo_path = DATA_DIR / "demo_transcript.json"
-    if not demo_path.exists():
-        await websocket.send_json({
-            "type": "error",
-            "message": "Demo transcript not found",
-        })
-        await websocket.close()
-        return
-
-    with open(demo_path, "r") as f:
-        demo_data = json.load(f)
-
-    segments = demo_data.get("segments", [])
+    language = "en"
     speed = settings.DEMO_SPEED
 
     async def send_json(data: dict):
@@ -367,13 +354,6 @@ async def demo_websocket(websocket: WebSocket):
         except Exception:
             pass
 
-    await send_json({
-        "type": "status",
-        "state": "ready",
-        "demo": True,
-        "total_segments": len(segments),
-    })
-
     try:
         # Wait for start signal
         raw = await websocket.receive_text()
@@ -381,6 +361,31 @@ async def demo_websocket(websocket: WebSocket):
 
         if start_msg.get("type") == "start":
             speed = start_msg.get("speed", speed)
+            language = start_msg.get("language", language)
+
+            # Load demo transcript based on language
+            file_name = "demo_transcript_he.json" if language == "he" else "demo_transcript.json"
+            demo_path = DATA_DIR / file_name
+            if not demo_path.exists():
+                await websocket.send_json({
+                    "type": "error",
+                    "message": f"Demo transcript not found for language {language}",
+                })
+                await websocket.close()
+                return
+
+            with open(demo_path, "r", encoding="utf-8") as f:
+                demo_data = json.load(f)
+
+            segments = demo_data.get("segments", [])
+
+            await send_json({
+                "type": "status",
+                "state": "ready",
+                "demo": True,
+                "total_segments": len(segments),
+            })
+
             await send_json({"type": "status", "state": "playing"})
 
             for i, segment in enumerate(segments):
@@ -402,7 +407,7 @@ async def demo_websocket(websocket: WebSocket):
                 if segment.get("speaker") == "prospect":
                     try:
                         full_response = ""
-                        async for chunk in ai_coach.get_coaching(segment["text"]):
+                        async for chunk in ai_coach.get_coaching(segment["text"], language=language):
                             full_response += chunk
                             await send_json({
                                 "type": "coaching_stream",
@@ -422,7 +427,7 @@ async def demo_websocket(websocket: WebSocket):
                             parsed = {
                                 "type": "tip",
                                 "priority": "medium",
-                                "title": "Coaching Tip",
+                                "title": "Coaching Tip" if language != "he" else "טיפ אימון",
                                 "suggestion": full_response[:300],
                                 "script": "",
                             }

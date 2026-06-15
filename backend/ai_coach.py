@@ -48,10 +48,10 @@ class AICoach:
         self.conversation_history: list[dict] = []
         self.max_history = 10  # Keep last N transcript segments for context
 
-    def _build_system_prompt(self, transcript: str) -> str:
+    def _build_system_prompt(self, transcript: str, language: str = "en") -> str:
         """Build the system prompt with RAG context injected."""
         # Search for relevant playbook context based on the transcript
-        rag_results = self.rag_engine.search(transcript, top_k=settings.RAG_TOP_K)
+        rag_results = self.rag_engine.search(transcript, top_k=settings.RAG_TOP_K, language=language)
 
         # Format RAG context
         if rag_results:
@@ -66,10 +66,28 @@ class AICoach:
         else:
             rag_context = "(No specific playbook context found for this conversation segment.)"
 
-        return (
+        prompt = (
             SALES_COACH_SYSTEM_PROMPT.replace("{rag_context}", rag_context)
             .replace("{transcript}", transcript)
         )
+
+        if language == "he":
+            prompt += """
+
+## LANGUAGE RULE
+The call is in Hebrew. You MUST write all the values in the JSON output in HEBREW (specifically `title`, `suggestion`, and `script`).
+Keep the JSON keys exactly in English: "type", "priority", "title", "suggestion", "script".
+The "type" and "priority" values must remain in English (e.g. "objection", "high").
+Example of Hebrew output:
+{
+  "type": "objection",
+  "priority": "high",
+  "title": "טיפול בהתנגדות: מחיר",
+  "suggestion": "הלקוח מודאג מהמחיר. הסבר את החזר ההשקעה (ROI) והפחתת עלויות ה-IT.",
+  "script": "אני מבין לחלוטין שתקציב הוא פקטור מרכזי..."
+}
+"""
+        return prompt
 
     def _get_conversation_context(self) -> str:
         """Get recent conversation history as a formatted string."""
@@ -92,7 +110,7 @@ class AICoach:
         if len(self.conversation_history) > self.max_history * 2:
             self.conversation_history = self.conversation_history[-self.max_history:]
 
-    async def get_coaching(self, transcript_text: str) -> AsyncGenerator[str, None]:
+    async def get_coaching(self, transcript_text: str, language: str = "en") -> AsyncGenerator[str, None]:
         """
         Get streaming coaching suggestions for the given transcript text.
 
@@ -104,7 +122,7 @@ class AICoach:
 
         # Build context
         conversation_context = self._get_conversation_context()
-        system_prompt = self._build_system_prompt(conversation_context)
+        system_prompt = self._build_system_prompt(conversation_context, language=language)
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -136,7 +154,7 @@ class AICoach:
             logger.warning(f"LLM connection offline or error: {e}. Activating local RAG fallback.")
             
             # Generate high-quality matched suggestion from local ChromaDB
-            fallback_suggestion = self._generate_local_fallback(transcript_text)
+            fallback_suggestion = self._generate_local_fallback(transcript_text, language=language)
             
             # Stream the fallback suggestion in small chunks to simulate LLM streaming
             chunk_size = 6
@@ -144,10 +162,10 @@ class AICoach:
                 yield fallback_suggestion[i:i+chunk_size]
                 await asyncio.sleep(0.015)
 
-    def _generate_local_fallback(self, text: str) -> str:
+    def _generate_local_fallback(self, text: str, language: str = "en") -> str:
         """Generate a high-quality coaching suggestion locally using ChromaDB RAG search."""
         try:
-            results = self.rag_engine.search(text, top_k=1)
+            results = self.rag_engine.search(text, top_k=1, language=language)
             if results:
                 best_match = results[0]
                 source_type = best_match["metadata"].get("source_type", "tip")
@@ -155,13 +173,20 @@ class AICoach:
                 
                 if source_type == "objection":
                     lines = best_match["text"].split("\n")
-                    category = "Objection Handling"
+                    category = "Objection Handling" if language != "he" else "טיפול בהתנגדות"
                     response = ""
                     for line in lines:
                         if line.startswith("Category:"):
                             category = line.split("Category:")[1].strip()
+                        elif line.startswith("objection:"):
+                            category = line.split("objection:")[1].strip()
                         elif line.startswith("Response:"):
                             response = line.split("Response:")[1].strip()
+                        elif line.startswith("primary_script:"):
+                            response = line.split("primary_script:")[1].strip()
+                        elif line.startswith("response_strategy:"):
+                            if not response:
+                                response = line.split("response_strategy:")[1].strip()
                     
                     if not response:
                         response = best_match["text"]
@@ -169,48 +194,61 @@ class AICoach:
                     return json.dumps({
                         "type": "objection",
                         "priority": "high",
-                        "title": f"Handle Objection: {category}",
-                        "suggestion": f"The prospect raised concern about {category.lower()}. Reframe using the playbook track.",
+                        "title": f"Handle Objection: {category}" if language != "he" else f"טיפול בהתנגדות: {category}",
+                        "suggestion": f"The prospect raised concern about {category.lower()}. Reframe using the playbook track." if language != "he" else f"הלקוח העלה התנגדות לגבי {category}. מסגר מחדש לפי תוכנית העבודה.",
                         "script": response
-                    }, indent=2)
+                    }, indent=2, ensure_ascii=False)
                 
                 # Playbook/Knowledge tip
                 lines = best_match["text"].split("\n")
-                title = "Playbook Tip"
+                title = "Playbook Tip" if language != "he" else "טיפ מתוכנית המכירות"
                 detail = best_match["text"]
                 for line in lines:
                     if line.startswith("Headline:") or line.startswith("Name:") or line.startswith("Scenario:"):
                         title = line.split(":", 1)[1].strip()
+                    elif line.startswith("headline:") or line.startswith("name:") or line.startswith("scenario:"):
+                        title = line.split(":", 1)[1].strip()
                     elif line.startswith("Detail:") or line.startswith("Script:") or line.startswith("Talk Track:"):
+                        detail = line.split(":", 1)[1].strip()
+                    elif line.startswith("detail:") or line.startswith("script:") or line.startswith("talk_track:"):
                         detail = line.split(":", 1)[1].strip()
                 
                 return json.dumps({
                     "type": "script" if "script" in best_match["text"].lower() else "tip",
                     "priority": "medium",
                     "title": title[:40],
-                    "suggestion": f"Relevant playbook reference from {source}.",
+                    "suggestion": f"Relevant playbook reference from {source}." if language != "he" else f"התייחסות רלוונטית מתוך: {source}.",
                     "script": detail[:200]
-                }, indent=2)
+                }, indent=2, ensure_ascii=False)
                 
         except Exception as e:
             logger.error(f"Fallback generation error: {e}")
             
         # Default fallback if RAG query also fails
+        if language == "he":
+            return json.dumps({
+                "type": "tip",
+                "priority": "medium",
+                "title": "הקשבה פעילה ושאילת שאלות",
+                "suggestion": "הקשב באופן פעיל ושאל שאלות מבהירות כדי להבין את זרימת העבודה הנוכחית ואת נקודות הכאב המרכזיות שלהם.",
+                "script": "איך אתם מנהלים את זרימת העבודה הזו כיום, ומהו המכשול הגדול ביותר שאתם נתקלים בו?"
+            }, indent=2, ensure_ascii=False)
+
         return json.dumps({
             "type": "tip",
             "priority": "medium",
             "title": "Acknowledge & Qualify",
             "suggestion": "Listen actively and ask clarifying questions to understand their current workflow and core pain points.",
             "script": "How are you currently managing these workflows, and what is the biggest bottleneck you face today?"
-        }, indent=2)
+        }, indent=2, ensure_ascii=False)
 
-    async def get_coaching_full(self, transcript_text: str) -> dict:
+    async def get_coaching_full(self, transcript_text: str, language: str = "en") -> dict:
         """
         Get a complete coaching suggestion (non-streaming).
         Returns parsed JSON or a fallback dict.
         """
         full_response = ""
-        async for chunk in self.get_coaching(transcript_text):
+        async for chunk in self.get_coaching(transcript_text, language=language):
             full_response += chunk
 
         # Try to parse as JSON
@@ -228,7 +266,7 @@ class AICoach:
             return {
                 "type": "tip",
                 "priority": "medium",
-                "title": "Coaching Tip",
+                "title": "Coaching Tip" if language != "he" else "טיפ אימון",
                 "suggestion": full_response[:300],
                 "script": "",
             }

@@ -143,26 +143,88 @@ class FasterWhisperProvider(BaseSTTProvider):
 
 class DeepgramProvider(BaseSTTProvider):
     """
-    Placeholder for Deepgram STT integration.
-    Swap in by setting STT_PROVIDER=deepgram and DEEPGRAM_API_KEY.
+    STT provider using Deepgram API.
+    Uses httpx to send raw PCM audio to Deepgram for ultra-low latency transcription.
     """
 
+    def __init__(self):
+        self.api_key = settings.DEEPGRAM_API_KEY
+        self.client = None
+
     async def initialize(self):
-        logger.info("Deepgram provider initialized (placeholder)")
-        # TODO: Initialize Deepgram SDK
-        # from deepgram import DeepgramClient
-        # self.client = DeepgramClient(settings.DEEPGRAM_API_KEY)
+        import httpx
+        logger.info("Initializing Deepgram provider...")
+        if not self.api_key:
+            logger.warning("DEEPGRAM_API_KEY is not set in config/env. Deepgram STT will fail.")
+        self.client = httpx.AsyncClient()
 
     async def transcribe(self, audio_data: np.ndarray,
                          language: str | None = None) -> list[TranscriptSegment]:
-        # TODO: Implement Deepgram streaming transcription
-        raise NotImplementedError(
-            "Deepgram provider not yet implemented. "
-            "Set STT_PROVIDER=faster-whisper to use the default provider."
-        )
+        if not self.api_key:
+            raise ValueError("DEEPGRAM_API_KEY is not set. Please add it to your .env file.")
+
+        if self.client is None:
+            import httpx
+            self.client = httpx.AsyncClient()
+
+        # Convert float32 [-1, 1] to 16-bit PCM bytes
+        int16_data = (audio_data * 32767.0).astype(np.int16)
+        raw_bytes = int16_data.tobytes()
+
+        lang = language or settings.STT_LANGUAGE
+        if lang == "auto":
+            lang = None
+
+        # Setup request parameters
+        params = {
+            "model": "nova-2",
+            "smart_format": "true",
+            "encoding": "linear16",
+            "sample_rate": str(settings.AUDIO_SAMPLE_RATE),
+            "channels": str(settings.AUDIO_CHANNELS)
+        }
+        if lang:
+            params["language"] = lang
+
+        headers = {
+            "Authorization": f"Token {self.api_key}",
+            "Content-Type": f"audio/l16;rate={settings.AUDIO_SAMPLE_RATE};channels={settings.AUDIO_CHANNELS}"
+        }
+
+        try:
+            response = await self.client.post(
+                "https://api.deepgram.com/v1/listen",
+                params=params,
+                headers=headers,
+                content=raw_bytes,
+                timeout=10.0
+            )
+            response.raise_for_status()
+            result = response.json()
+
+            alternatives = result.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])
+            if not alternatives:
+                return []
+
+            text = alternatives[0].get("transcript", "").strip()
+            confidence = alternatives[0].get("confidence", 0.0)
+
+            if not text:
+                return []
+
+            return [TranscriptSegment(
+                text=text,
+                language=lang or "unknown",
+                confidence=confidence
+            )]
+        except Exception as e:
+            logger.error(f"Deepgram transcription error: {e}")
+            raise e
 
     async def cleanup(self):
-        pass
+        if self.client:
+            await self.client.aclose()
+            self.client = None
 
 
 class AssemblyAIProvider(BaseSTTProvider):

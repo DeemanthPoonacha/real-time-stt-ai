@@ -77,19 +77,23 @@ export class DemoPlayer {
     synth.addEventListener('voiceschanged', loadVoices);
   }
 
+  language = 'en';
+
   /**
    * Start the demo playback.
    * @param wsManager — connected to /ws/coaching
    * @param speed — playback speed multiplier
+   * @param language — transcript language ('en' | 'he')
    */
-  async start(wsManager: WebSocketManager, speed = 1.0) {
+  async start(wsManager: WebSocketManager, speed = 1.0, language = 'en') {
     this.wsManager = wsManager;
     this.speed = speed;
+    this.language = language;
     this.isCancelled = false;
 
     try {
       // Fetch demo transcript from backend
-      const res = await fetch(`${API_BASE}/api/demo-transcript`);
+      const res = await fetch(`${API_BASE}/api/demo-transcript?language=${language}`);
       if (!res.ok) throw new Error(`Failed to fetch demo transcript: ${res.status}`);
       const data = await res.json();
       this.segments = data.segments || [];
@@ -164,14 +168,24 @@ export class DemoPlayer {
 
       const utterance = new SpeechSynthesisUtterance(text);
 
-      if (speaker === 'rep') {
-        utterance.voice = this._repVoice;
-        utterance.pitch = 1.0;
-        utterance.rate = 1.05 * this.speed;
+      if (this.language === 'he') {
+        utterance.lang = 'he-IL';
+        const heVoices = synth.getVoices().filter(v => v.lang.startsWith('he') || v.lang.startsWith('iw'));
+        if (heVoices.length > 0) {
+          utterance.voice = speaker === 'rep' ? heVoices[0] : (heVoices[1] || heVoices[0]);
+        }
+        utterance.pitch = speaker === 'rep' ? 1.0 : 1.15;
+        utterance.rate = 1.0 * this.speed;
       } else {
-        utterance.voice = this._prospectVoice;
-        utterance.pitch = 1.1;
-        utterance.rate = 0.95 * this.speed;
+        if (speaker === 'rep') {
+          utterance.voice = this._repVoice;
+          utterance.pitch = 1.0;
+          utterance.rate = 1.05 * this.speed;
+        } else {
+          utterance.voice = this._prospectVoice;
+          utterance.pitch = 1.1;
+          utterance.rate = 0.95 * this.speed;
+        }
       }
 
       utterance.volume = 0.8;

@@ -91,7 +91,7 @@ class RAGEngine:
         content = f"{source}:{text}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    def ingest_json_file(self, file_path: Path, source_type: str = "playbook"):
+    def ingest_json_file(self, file_path: Path, source_type: str = "playbook", language: str = "en"):
         """
         Ingest a JSON file into the vector store.
 
@@ -149,6 +149,7 @@ class RAGEngine:
                     "source_type": source_type,
                     "section": section,
                     "chunk_index": chunk_idx,
+                    "language": language,
                 })
                 ids.append(doc_id)
 
@@ -167,12 +168,12 @@ class RAGEngine:
 
             logger.info(
                 f"Ingested {len(documents)} chunks from {file_path.name} "
-                f"(type={source_type})"
+                f"(type={source_type}, language={language})"
             )
         else:
             logger.warning(f"No documents extracted from {file_path.name}")
 
-    def ingest_text_file(self, file_path: Path, source_type: str = "document"):
+    def ingest_text_file(self, file_path: Path, source_type: str = "document", language: str = "en"):
         """Ingest a plain text or markdown file into the vector store."""
         with open(file_path, "r", encoding="utf-8") as f:
             text = f.read()
@@ -191,6 +192,7 @@ class RAGEngine:
                 "source": file_name,
                 "source_type": source_type,
                 "chunk_index": i,
+                "language": language,
             })
             ids.append(doc_id)
 
@@ -201,7 +203,7 @@ class RAGEngine:
                 ids=ids,
             )
             logger.info(
-                f"Ingested {len(documents)} chunks from {file_path.name}"
+                f"Ingested {len(documents)} chunks from {file_path.name} (language={language})"
             )
 
     def ingest_all_data(self):
@@ -214,19 +216,23 @@ class RAGEngine:
         text_files = list(DATA_DIR.glob("*.txt")) + list(DATA_DIR.glob("*.md"))
 
         for f in json_files:
+            if "demo_transcript" in f.stem:
+                continue
             source_type = "playbook" if "playbook" in f.stem else \
                           "objection" if "objection" in f.stem else "knowledge"
-            self.ingest_json_file(f, source_type=source_type)
+            language = "he" if f.stem.endswith("_he") else "en"
+            self.ingest_json_file(f, source_type=source_type, language=language)
 
         for f in text_files:
-            self.ingest_text_file(f, source_type="document")
+            language = "he" if f.stem.endswith("_he") else "en"
+            self.ingest_text_file(f, source_type="document", language=language)
 
         logger.info(
             f"Total documents in collection: {self.collection.count()}"
         )
 
     def search(self, query: str, top_k: int = None,
-               source_type: str | None = None) -> list[dict]:
+               source_type: str | None = None, language: str = "en") -> list[dict]:
         """
         Search for relevant documents given a query.
 
@@ -234,6 +240,7 @@ class RAGEngine:
             query: The search query (typically recent transcript text)
             top_k: Number of results to return
             source_type: Optional filter by source type
+            language: Filter by language ('en' or 'he')
 
         Returns:
             List of dicts with 'text', 'metadata', and 'distance' keys
@@ -241,8 +248,16 @@ class RAGEngine:
         top_k = top_k or settings.RAG_TOP_K
 
         where_filter = None
+        filters = []
         if source_type:
-            where_filter = {"source_type": source_type}
+            filters.append({"source_type": source_type})
+        if language:
+            filters.append({"language": language})
+
+        if len(filters) == 1:
+            where_filter = filters[0]
+        elif len(filters) > 1:
+            where_filter = {"$and": filters}
 
         try:
             results = self.collection.query(

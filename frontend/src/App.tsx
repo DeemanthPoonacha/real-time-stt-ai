@@ -224,7 +224,7 @@ export default function App() {
         setCallStartTime(Date.now());
 
         // Start TTS playback
-        demo.start(ws, 1.0);
+        demo.start(ws, 1.0, language);
       } else {
         ws.disconnect();
         alert('Failed to access microphone. Microphone access is required to capture the TTS speaker output for transcription.');
