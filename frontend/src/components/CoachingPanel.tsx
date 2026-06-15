@@ -1,12 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 
+interface CoachingSuggestion {
+  type: string;
+  suggestion: string;
+  title?: string;
+  priority?: string;
+  script?: string;
+}
+
+interface CoachingPanelProps {
+  suggestions: CoachingSuggestion[];
+  streamingText: string;
+  isStreaming: boolean;
+}
+
+interface ParsedStream {
+  type?: string;
+  priority?: string;
+  title?: string;
+  suggestion?: string;
+  script?: string;
+}
+
 /**
  * CoachingPanel — Renders AI coach feedback dynamically.
  * Features stateful click-to-copy tags, streaming animation logs, and category color codings.
  */
-export default function CoachingPanel({ suggestions, streamingText, isStreaming }) {
-  const scrollRef = useRef(null);
-  const [copiedIndex, setCopiedIndex] = useState(null);
+export default function CoachingPanel({ suggestions, streamingText, isStreaming }: CoachingPanelProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -14,7 +36,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
     }
   }, [suggestions, streamingText]);
 
-  const getTypeConfig = (type) => {
+  const getTypeConfig = (type: string) => {
     switch (type) {
       case 'objection':
         return { 
@@ -61,7 +83,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
     }
   };
 
-  const getPriorityBadge = (priority) => {
+  const getPriorityBadge = (priority: string) => {
     switch (priority) {
       case 'high':
         return 'bg-[--color-accent-rose]/10 text-[--color-accent-rose] border-[--color-accent-rose]/30';
@@ -72,7 +94,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
     }
   };
 
-  const copyToClipboard = (text, index) => {
+  const copyToClipboard = (text: string, index: number) => {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 2000);
@@ -80,16 +102,23 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
   };
 
   // Parse streaming JSON to extract suggestion details dynamically
-  const getParsedStream = (text) => {
+  const getParsedStream = (text: string): ParsedStream | null => {
     if (!text) return null;
-    const cleanText = text.trim();
+    let cleanText = text.trim();
+    
+    // Clean markdown code blocks wrappers if present in the stream
+    cleanText = cleanText.replace(/^```json\s*/i, '');
+    cleanText = cleanText.replace(/^```\s*/, '');
+    cleanText = cleanText.replace(/```$/, '');
+    cleanText = cleanText.trim();
+    
     if (!cleanText.startsWith('{')) {
-      return { suggestion: cleanText };
+      return { suggestion: text };
     }
     try {
       return JSON.parse(cleanText);
     } catch (e) {
-      const result = {};
+      const result: ParsedStream = {};
       const typeMatch = cleanText.match(/"type"\s*:\s*"([^"]*)"/);
       const priorityMatch = cleanText.match(/"priority"\s*:\s*"([^"]*)"/);
       const titleMatch = cleanText.match(/"title"\s*:\s*"([^"]*)"/);
@@ -197,7 +226,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                               Dialogue talk track
                             </span>
                             <button
-                              onClick={() => copyToClipboard(suggestion.script, index)}
+                              onClick={() => copyToClipboard(suggestion.script!, index)}
                               className="text-[9px] text-[--color-accent-blue] hover:text-[--color-text-primary] transition-all duration-200 opacity-0 group-hover/script:opacity-100 flex items-center gap-1.5 cursor-pointer font-bold uppercase tracking-wider"
                             >
                               {copiedIndex === index ? (
@@ -244,8 +273,9 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming 
                   <div className={`glass-card ${config.cardClass} p-4.5 animate-fade-in relative overflow-hidden border-dashed border-[--color-border-bright]`}>
                     <div className="flex items-center gap-2 mb-2.5">
                       <span className="text-sm">{config.icon}</span>
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border bg-[--color-accent-blue]/5 text-[--color-accent-blue] border-[--color-accent-blue]/15 animate-pulse">
-                        Predicting Insights
+                      <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${config.badge} flex items-center gap-1.5`}>
+                        <span className="w-1 h-1 rounded-full bg-current animate-pulse" />
+                        <span>Live {config.label}</span>
                       </span>
                       {parsed.priority && (
                         <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ml-auto ${getPriorityBadge(parsed.priority)}`}>

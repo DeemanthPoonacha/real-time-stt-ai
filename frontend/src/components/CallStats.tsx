@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
 
+interface CallStatsProps {
+  callStartTime: number | null;
+  isActive: boolean;
+  transcriptCount: number;
+  suggestionCount: number;
+  objectionsDetected: number;
+}
+
 /**
  * CallStats — Displays key session metrics in high-fidelity cards.
  */
@@ -9,7 +17,7 @@ export default function CallStats({
   transcriptCount, 
   suggestionCount, 
   objectionsDetected 
-}) {
+}: CallStatsProps) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -24,7 +32,7 @@ export default function CallStats({
     if (!isActive) setElapsed(0);
   }, [isActive]);
 
-  const formatDuration = (s) => {
+  const formatDuration = (s: number) => {
     const m = Math.floor(s / 60).toString().padStart(2, '0');
     return `${m}:${(s % 60).toString().padStart(2, '0')}`;
   };
@@ -40,7 +48,7 @@ export default function CallStats({
     },
     { 
       label: 'Transcripts', 
-      value: transcriptCount, 
+      value: transcriptCount.toString(), 
       icon: '💬', 
       color: 'text-[--color-accent-emerald]',
       bgColor: 'rgba(16,185,129,0.06)',
@@ -48,7 +56,7 @@ export default function CallStats({
     },
     { 
       label: 'AI Coach Tips', 
-      value: suggestionCount, 
+      value: suggestionCount.toString(), 
       icon: '🤖', 
       color: 'text-[--color-accent-violet]',
       bgColor: 'rgba(167,139,250,0.06)',
@@ -56,7 +64,7 @@ export default function CallStats({
     },
     { 
       label: 'Objections Blocked', 
-      value: objectionsDetected, 
+      value: objectionsDetected.toString(), 
       icon: '⚠️', 
       color: 'text-[--color-accent-rose]',
       bgColor: 'rgba(244,63,94,0.06)',

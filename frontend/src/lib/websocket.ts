@@ -11,15 +11,18 @@
 const WS_BASE = `ws://${window.location.hostname}:8000`;
 
 export class WebSocketManager {
-  constructor(onMessage, onStateChange) {
-    this.ws = null;
+  private ws: WebSocket | null = null;
+  private onMessage: (data: any) => void;
+  private onStateChange: (state: string) => void;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 10;
+  private reconnectDelay = 1000;
+  private isIntentionalClose = false;
+  private endpoint = '/ws/coaching';
+
+  constructor(onMessage: (data: any) => void, onStateChange: (state: string) => void) {
     this.onMessage = onMessage;
     this.onStateChange = onStateChange;
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 10;
-    this.reconnectDelay = 1000;
-    this.isIntentionalClose = false;
-    this.endpoint = '/ws/coaching';
   }
 
   connect(endpoint = '/ws/coaching') {
@@ -32,13 +35,13 @@ export class WebSocketManager {
       this.ws.onopen = () => {
         console.log(`✅ WebSocket connected to ${endpoint}`);
         this.reconnectAttempts = 0;
-        this.onStateChange?.('connected');
+        this.onStateChange('connected');
       };
 
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          this.onMessage?.(data);
+          this.onMessage(data);
         } catch (e) {
           console.error('Failed to parse WebSocket message:', e);
         }
@@ -46,7 +49,7 @@ export class WebSocketManager {
 
       this.ws.onclose = (event) => {
         console.log(`🔌 WebSocket disconnected (code: ${event.code})`);
-        this.onStateChange?.('disconnected');
+        this.onStateChange('disconnected');
 
         if (!this.isIntentionalClose && this.reconnectAttempts < this.maxReconnectAttempts) {
           const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000);
@@ -58,25 +61,25 @@ export class WebSocketManager {
 
       this.ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        this.onStateChange?.('error');
+        this.onStateChange('error');
       };
     } catch (e) {
       console.error('Failed to create WebSocket:', e);
-      this.onStateChange?.('error');
+      this.onStateChange('error');
     }
   }
 
-  send(data) {
+  send(data: any) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }
   }
 
-  sendAudio(base64Audio) {
+  sendAudio(base64Audio: string) {
     this.send({ type: 'audio', data: base64Audio });
   }
 
-  sendConfig(config) {
+  sendConfig(config: any) {
     this.send({ type: 'config', ...config });
   }
 
@@ -92,14 +95,13 @@ export class WebSocketManager {
     this.isIntentionalClose = true;
     this.ws?.close();
     this.ws = null;
-    this.onStateChange?.('disconnected');
+    this.onStateChange('disconnected');
   }
 
-  get isConnected() {
+  get isConnected(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 }
-
 
 /**
  * AudioCapture — Manages microphone capture and audio streaming.
@@ -107,17 +109,24 @@ export class WebSocketManager {
  * Captures audio via MediaRecorder API, converts to 16-bit PCM,
  * and sends base64-encoded chunks via the WebSocket manager.
  */
-
 export class AudioCapture {
-  constructor(wsManager, onAudioLevel, options = {}) {
+  private wsManager: WebSocketManager;
+  private onAudioLevel: (level: number) => void;
+  private mediaStream: MediaStream | null = null;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private processor: ScriptProcessorNode | null = null;
+  private isRecording = false;
+  private animationFrame: number | null = null;
+  private options: { echoCancellation?: boolean; noiseSuppression?: boolean; autoGainControl?: boolean };
+
+  constructor(
+    wsManager: WebSocketManager,
+    onAudioLevel: (level: number) => void,
+    options: { echoCancellation?: boolean; noiseSuppression?: boolean; autoGainControl?: boolean } = {}
+  ) {
     this.wsManager = wsManager;
     this.onAudioLevel = onAudioLevel;
-    this.mediaStream = null;
-    this.audioContext = null;
-    this.analyser = null;
-    this.processor = null;
-    this.isRecording = false;
-    this.animationFrame = null;
     this.options = {
       echoCancellation: true,
       noiseSuppression: true,
@@ -126,7 +135,7 @@ export class AudioCapture {
     };
   }
 
-  async start() {
+  async start(): Promise<boolean> {
     try {
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -138,7 +147,7 @@ export class AudioCapture {
         }
       });
 
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
         sampleRate: 16000,
       });
 
@@ -150,7 +159,6 @@ export class AudioCapture {
       source.connect(this.analyser);
 
       // ScriptProcessor for raw PCM capture
-      // Buffer size of 4096 = ~256ms at 16kHz — good balance of latency vs efficiency
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
       source.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
@@ -188,7 +196,7 @@ export class AudioCapture {
     }
   }
 
-  _updateAudioLevel() {
+  private _updateAudioLevel() {
     if (!this.analyser || !this.isRecording) return;
 
     const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
@@ -196,7 +204,7 @@ export class AudioCapture {
 
     // Calculate average level (0-1)
     const avg = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length / 255;
-    this.onAudioLevel?.(avg);
+    this.onAudioLevel(avg);
 
     this.animationFrame = requestAnimationFrame(() => this._updateAudioLevel());
   }
@@ -204,8 +212,9 @@ export class AudioCapture {
   stop() {
     this.isRecording = false;
 
-    if (this.animationFrame) {
+    if (this.animationFrame !== null) {
       cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
     }
 
     if (this.processor) {
@@ -228,6 +237,6 @@ export class AudioCapture {
       this.mediaStream = null;
     }
 
-    this.onAudioLevel?.(0);
+    this.onAudioLevel(0);
   }
 }

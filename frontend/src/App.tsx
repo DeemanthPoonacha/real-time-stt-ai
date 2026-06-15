@@ -7,28 +7,43 @@ import PlaybookSidebar from './components/PlaybookSidebar';
 import { WebSocketManager, AudioCapture } from './lib/websocket';
 import { DemoPlayer } from './lib/demoPlayer';
 
+interface TranscriptSegment {
+  text: string;
+  speaker: string;
+  timestamp?: number;
+  language?: string;
+}
+
+interface CoachingSuggestion {
+  type: string;
+  suggestion: string;
+  title?: string;
+  priority?: string;
+  script?: string;
+}
+
 export default function App() {
   // --- State ---
-  const [connectionState, setConnectionState] = useState('disconnected');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
-  const [language, setLanguage] = useState('en');
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [transcriptSegments, setTranscriptSegments] = useState([]);
-  const [coachingSuggestions, setCoachingSuggestions] = useState([]);
-  const [streamingText, setStreamingText] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [callStartTime, setCallStartTime] = useState(null);
-  const [objectionsDetected, setObjectionsDetected] = useState(0);
-  const [demoSpeaker, setDemoSpeaker] = useState(null); // who is currently speaking in demo
-  const [demoProgress, setDemoProgress] = useState(null); // {current, total}
+  const [connectionState, setConnectionState] = useState<string>('disconnected');
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isDemo, setIsDemo] = useState<boolean>(false);
+  const [language, setLanguage] = useState<string>('en');
+  const [audioLevel, setAudioLevel] = useState<number>(0);
+  const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
+  const [coachingSuggestions, setCoachingSuggestions] = useState<CoachingSuggestion[]>([]);
+  const [streamingText, setStreamingText] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [callStartTime, setCallStartTime] = useState<number | null>(null);
+  const [objectionsDetected, setObjectionsDetected] = useState<number>(0);
+  const [demoSpeaker, setDemoSpeaker] = useState<string | null>(null); // who is currently speaking in demo
+  const [demoProgress, setDemoProgress] = useState<{ current: number; total: number; speaker: string } | null>(null); // {current, total}
 
   // --- Refs ---
-  const wsRef = useRef(null);
-  const audioRef = useRef(null);
-  const demoRef = useRef(null);
-  const isDemoRef = useRef(isDemo);
-  const demoSpeakerRef = useRef(demoSpeaker);
+  const wsRef = useRef<WebSocketManager | null>(null);
+  const audioRef = useRef<AudioCapture | null>(null);
+  const demoRef = useRef<DemoPlayer | null>(null);
+  const isDemoRef = useRef<boolean>(isDemo);
+  const demoSpeakerRef = useRef<string | null>(demoSpeaker);
 
   // Keep refs in sync with state for use inside useCallback closures
   useEffect(() => {
@@ -40,7 +55,7 @@ export default function App() {
   }, [demoSpeaker]);
 
   // --- WebSocket Message Handler ---
-  const handleMessage = useCallback((data) => {
+  const handleMessage = useCallback((data: any) => {
     switch (data.type) {
       case 'transcript':
         // Map transcript to current speaker if in demo mode
@@ -92,7 +107,7 @@ export default function App() {
   }, []);
 
   // --- Connection State Handler ---
-  const handleStateChange = useCallback((state) => {
+  const handleStateChange = useCallback((state: string) => {
     setConnectionState(state);
   }, []);
 
@@ -218,7 +233,7 @@ export default function App() {
   }, [isDemo, language, handleMessage, handleStateChange]);
 
   // --- Language Change ---
-  const handleLanguageChange = useCallback((lang) => {
+  const handleLanguageChange = useCallback((lang: string) => {
     setLanguage(lang);
     wsRef.current?.sendConfig({ language: lang });
     // Toggle HTML dir for RTL

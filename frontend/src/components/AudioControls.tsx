@@ -1,4 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
+
+interface AudioControlsProps {
+  isRecording: boolean;
+  isDemo: boolean;
+  connectionState: string;
+  audioLevel: number;
+  language: string;
+  onToggleRecording: () => void;
+  onToggleDemo: () => void;
+  onLanguageChange: (lang: string) => void;
+  onReset: () => void;
+}
 
 /**
  * AudioControls — Redesigned controls featuring a premium mic controller, 
@@ -14,7 +25,7 @@ export default function AudioControls({
   onToggleDemo,
   onLanguageChange,
   onReset,
-}) {
+}: AudioControlsProps) {
   const bars = 14;
   const isActive = isRecording || isDemo;
 
@@ -45,7 +56,6 @@ export default function AudioControls({
       <div className="flex flex-col gap-1 items-center">
         <div className="audio-meter">
           {Array.from({ length: bars }, (_, i) => {
-            // Calculate a wave shape that peaks in the middle and bounces dynamically when active
             const midDist = Math.abs(i - bars / 2) / (bars / 2);
             const peakFactor = Math.max(0.1, 1 - midDist);
             const h = isActive
@@ -89,7 +99,7 @@ export default function AudioControls({
       {/* Separator */}
       <div className="w-px h-8 bg-white/5" />
 
-      {/* Language Switcher (Modern Button Selector) */}
+      {/* Language Switcher */}
       <div className="flex items-center gap-2">
         <div className="lang-pill-container">
           <button

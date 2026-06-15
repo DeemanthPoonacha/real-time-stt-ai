@@ -1,11 +1,23 @@
 import { useEffect, useRef } from 'react';
 
+interface TranscriptSegment {
+  text: string;
+  speaker: string;
+  timestamp?: number;
+  language?: string;
+}
+
+interface LiveTranscriptProps {
+  segments: TranscriptSegment[];
+  language: string;
+}
+
 /**
  * LiveTranscript — Scrolling live dialogue container.
  * Features distinct avatars for Rep vs Prospect, RTL support, and elegant timing indicators.
  */
-export default function LiveTranscript({ segments, language }) {
-  const scrollRef = useRef(null);
+export default function LiveTranscript({ segments, language }: LiveTranscriptProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const isRTL = language === 'he';
 
   // Auto-scroll to bottom on new segments
@@ -15,12 +27,12 @@ export default function LiveTranscript({ segments, language }) {
     }
   }, [segments]);
 
-  const formatTime = (timestamp) => {
+  const formatTime = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const getSpeakerConfig = (speaker) => {
+  const getSpeakerConfig = (speaker: string) => {
     if (speaker === 'rep') {
       return {
         label: 'Sales Rep',

@@ -1,15 +1,60 @@
 import { useState, useEffect } from 'react';
 
+interface PlaybookPricing {
+  price: string;
+  features?: string[];
+}
+
+interface PlaybookOpening {
+  scenario: string;
+  script: string;
+}
+
+interface PlaybookValueProp {
+  headline: string;
+  detail: string;
+}
+
+interface PlaybookClosing {
+  name: string;
+  script: string;
+}
+
+interface PlaybookCompetitor {
+  competitor: string;
+  talk_track: string;
+}
+
+interface PlaybookProduct {
+  name: string;
+  tagline: string;
+}
+
+interface PlaybookData {
+  pricing?: Record<string, PlaybookPricing>;
+  opening_scripts?: PlaybookOpening[];
+  value_propositions?: PlaybookValueProp[];
+  closing_techniques?: PlaybookClosing[];
+  competitor_comparisons?: PlaybookCompetitor[];
+  product?: PlaybookProduct;
+}
+
+interface PlaybookSection {
+  key: string;
+  title: string;
+  items: { label: string; detail: string }[];
+}
+
 /**
  * PlaybookSidebar — Dynamic lookup for company product playbook details.
  * Supports keyword search, category quick-filter chips, and stateful copying.
  */
 export default function PlaybookSidebar() {
-  const [playbook, setPlaybook] = useState(null);
-  const [expandedSection, setExpandedSection] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [copiedItemKey, setCopiedItemKey] = useState(null);
+  const [playbook, setPlaybook] = useState<PlaybookData | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [copiedItemKey, setCopiedItemKey] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/playbook')
@@ -22,11 +67,11 @@ export default function PlaybookSidebar() {
       .catch(e => console.error('Failed to load playbook:', e));
   }, []);
 
-  const toggleSection = (section) => {
+  const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  const copyText = (text, itemKey) => {
+  const copyText = (text: string, itemKey: string) => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => {
       setCopiedItemKey(itemKey);
@@ -51,8 +96,8 @@ export default function PlaybookSidebar() {
     );
   }
 
-  const sections = [
-    { key: 'pricing', title: '💰 Pricing Plans', items: playbook.pricing ? Object.entries(playbook.pricing).map(([k, v]) => ({ label: `${k}: ${v.price}`, detail: v.features?.join(', ') })) : [] },
+  const sections: PlaybookSection[] = [
+    { key: 'pricing', title: '💰 Pricing Plans', items: playbook.pricing ? Object.entries(playbook.pricing).map(([k, v]) => ({ label: `${k}: ${v.price}`, detail: v.features?.join(', ') || '' })) : [] },
     { key: 'opening', title: '🎬 Opening Scripts', items: playbook.opening_scripts?.map(s => ({ label: s.scenario, detail: s.script })) || [] },
     { key: 'value', title: '✨ Value Props', items: playbook.value_propositions?.map(v => ({ label: v.headline, detail: v.detail })) || [] },
     { key: 'closing', title: '🎯 Closing Techniques', items: playbook.closing_techniques?.map(c => ({ label: c.name, detail: c.script })) || [] },

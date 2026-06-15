@@ -1,54 +1,54 @@
-/**
- * DemoPlayer — Orchestrates demo mode using browser Text-to-Speech.
- *
- * Instead of relying on the backend to play back a canned transcript,
- * this class fetches the demo script, speaks each segment aloud via
- * the Web Speech Synthesis API, and sends the text to the backend's
- * coaching WebSocket for real-time AI analysis.
- *
- * Flow:
- *   1. Fetch demo transcript from /api/demo-transcript
- *   2. For each segment:
- *      a. Speak the text via SpeechSynthesis (different voices for rep/prospect)
- *      b. Show the transcript in the UI immediately
- *      c. Send the text to backend via WS for coaching analysis
- *   3. Report progress via callbacks
- */
+import { WebSocketManager } from './websocket';
+
+interface DemoPlayerOptions {
+  onTranscript?: (segment: { text: string; speaker: string; timestamp: number }) => void;
+  onSpeakingChange?: (speaker: string | null) => void;
+  onProgress?: (progress: { current: number; total: number; speaker: string }) => void;
+  onComplete?: () => void;
+  onError?: (message: string) => void;
+}
+
+interface Segment {
+  text: string;
+  speaker: string;
+  delay_ms?: number;
+}
 
 const API_BASE = `http://${window.location.hostname}:8000`;
 
 export class DemoPlayer {
-  constructor({ onTranscript, onSpeakingChange, onProgress, onComplete, onError }) {
+  private onTranscript?: (segment: { text: string; speaker: string; timestamp: number }) => void;
+  private onSpeakingChange?: (speaker: string | null) => void;
+  private onProgress?: (progress: { current: number; total: number; speaker: string }) => void;
+  private onComplete?: () => void;
+  private onError?: (message: string) => void;
+
+  private segments: Segment[] = [];
+  private isCancelled = false;
+  private speed = 1.0;
+  private wsManager: WebSocketManager | null = null;
+
+  // TTS voice cache
+  private _repVoice: SpeechSynthesisVoice | null = null;
+  private _prospectVoice: SpeechSynthesisVoice | null = null;
+
+  constructor({ onTranscript, onSpeakingChange, onProgress, onComplete, onError }: DemoPlayerOptions) {
     this.onTranscript = onTranscript;
     this.onSpeakingChange = onSpeakingChange;
     this.onProgress = onProgress;
     this.onComplete = onComplete;
     this.onError = onError;
 
-    this.segments = [];
-    this.currentIndex = 0;
-    this.isPlaying = false;
-    this.isCancelled = false;
-    this.speed = 1.0;
-    this.wsManager = null;
-
-    // TTS voice cache
-    this._repVoice = null;
-    this._prospectVoice = null;
-    this._voicesReady = false;
-
     // Preload voices
     this._initVoices();
   }
 
-  _initVoices() {
+  private _initVoices() {
     const synth = window.speechSynthesis;
 
     const loadVoices = () => {
       const voices = synth.getVoices();
       if (voices.length === 0) return;
-
-      this._voicesReady = true;
 
       // Pick distinct voices for rep vs prospect
       // Prefer English voices; use male-sounding for rep, female-sounding for prospect
@@ -67,7 +67,6 @@ export class DemoPlayer {
         femaleKeywords.some(k => v.name.toLowerCase().includes(k))
       ) || fallback[Math.min(1, fallback.length - 1)];
 
-      // If both ended up the same, just use different pitch later
       console.log(`🎤 TTS voices loaded — Rep: "${this._repVoice?.name}", Prospect: "${this._prospectVoice?.name}"`);
     };
 
@@ -80,15 +79,13 @@ export class DemoPlayer {
 
   /**
    * Start the demo playback.
-   * @param {WebSocketManager} wsManager — connected to /ws/coaching
-   * @param {number} speed — playback speed multiplier
+   * @param wsManager — connected to /ws/coaching
+   * @param speed — playback speed multiplier
    */
-  async start(wsManager, speed = 1.0) {
+  async start(wsManager: WebSocketManager, speed = 1.0) {
     this.wsManager = wsManager;
     this.speed = speed;
-    this.isPlaying = true;
     this.isCancelled = false;
-    this.currentIndex = 0;
 
     try {
       // Fetch demo transcript from backend
@@ -107,7 +104,6 @@ export class DemoPlayer {
       for (let i = 0; i < this.segments.length; i++) {
         if (this.isCancelled) break;
 
-        this.currentIndex = i;
         const segment = this.segments[i];
 
         // Wait for the segment delay (simulates natural conversation pacing)
@@ -147,12 +143,10 @@ export class DemoPlayer {
       }
 
       if (!this.isCancelled) {
-        this.isPlaying = false;
         this.onComplete?.();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Demo player error:', err);
-      this.isPlaying = false;
       this.onError?.(err.message);
     }
   }
@@ -161,7 +155,7 @@ export class DemoPlayer {
    * Speak text using the Web Speech Synthesis API.
    * Returns a promise that resolves when speech finishes.
    */
-  _speak(text, speaker) {
+  private _speak(text: string, speaker: string): Promise<void> {
     return new Promise((resolve) => {
       const synth = window.speechSynthesis;
 
@@ -191,7 +185,6 @@ export class DemoPlayer {
       synth.speak(utterance);
 
       // Chrome bug workaround: long utterances get paused after ~15s
-      // Periodically resume to prevent stalling
       const keepAlive = setInterval(() => {
         if (!synth.speaking) {
           clearInterval(keepAlive);
@@ -213,15 +206,13 @@ export class DemoPlayer {
    */
   stop() {
     this.isCancelled = true;
-    this.isPlaying = false;
     window.speechSynthesis.cancel();
     this.onSpeakingChange?.(null);
   }
 
-  _sleep(ms) {
+  private _sleep(ms: number): Promise<void> {
     return new Promise((resolve) => {
       const id = setTimeout(resolve, ms);
-      // Check for cancellation
       const check = setInterval(() => {
         if (this.isCancelled) {
           clearTimeout(id);
@@ -229,7 +220,6 @@ export class DemoPlayer {
           resolve();
         }
       }, 100);
-      // Also clear the check interval when the sleep finishes normally
       setTimeout(() => clearInterval(check), ms + 50);
     });
   }
