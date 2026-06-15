@@ -113,7 +113,7 @@ Example of Hebrew output:
         if len(self.conversation_history) > self.max_history * 2:
             self.conversation_history = self.conversation_history[-self.max_history:]
 
-    async def get_coaching(self, transcript_text: str, language: str = "en") -> AsyncGenerator[str, None]:
+    async def get_coaching(self, transcript_text: str, speaker: str = "unknown", language: str = "en") -> AsyncGenerator[str, None]:
         """
         Get streaming coaching suggestions for the given transcript text.
 
@@ -121,7 +121,7 @@ Example of Hebrew output:
         local RAG-based suggestion, streaming it to keep the UI smooth.
         """
         # Add to conversation history
-        self.add_transcript(transcript_text)
+        self.add_transcript(transcript_text, speaker)
 
         # Build context
         conversation_context = self._get_conversation_context()

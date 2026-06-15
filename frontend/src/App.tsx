@@ -46,6 +46,7 @@ export default function App() {
   const isDemoRef = useRef<boolean>(isDemo);
   const demoSpeakerRef = useRef<string | null>(demoSpeaker);
   const latestRepScriptRef = useRef<string | null>(null);
+  const isStreamingRef = useRef<boolean>(isStreaming);
 
   // Keep refs in sync with state for use inside useCallback closures
   useEffect(() => {
@@ -56,14 +57,18 @@ export default function App() {
     demoSpeakerRef.current = demoSpeaker;
   }, [demoSpeaker]);
 
+  useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
   // --- WebSocket Message Handler ---
   const handleMessage = useCallback((data: any) => {
     switch (data.type) {
       case 'transcript':
-        // Map transcript to current speaker if in demo mode
+        // Map transcript to current speaker if in demo mode, prioritizing backend speaker
         setTranscriptSegments(prev => [...prev, {
           text: data.text,
-          speaker: isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : (data.speaker || 'unknown'),
+          speaker: data.speaker || (isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : 'unknown'),
           timestamp: data.timestamp,
           language: data.language,
         }]);
@@ -71,7 +76,7 @@ export default function App() {
 
       case 'coaching':
         if (data.data) {
-          setCoachingSuggestions(prev => [...prev, data.data]);
+          setCoachingSuggestions([data.data]); // REPLACE instead of append!
           if (data.data.script) {
             latestRepScriptRef.current = data.data.script;
             if (demoRef.current) {
@@ -96,7 +101,11 @@ export default function App() {
         if (data.done) {
           setIsStreaming(false);
         } else {
-          setIsStreaming(true);
+          if (!isStreamingRef.current) {
+            setCoachingSuggestions([]);
+            setStreamingText('');
+            setIsStreaming(true);
+          }
           setStreamingText(prev => prev + (data.chunk || ''));
         }
         break;
@@ -137,6 +146,12 @@ export default function App() {
       setCallStartTime(null);
     } else {
       // Start
+      setTranscriptSegments([]);
+      setCoachingSuggestions([]);
+      setStreamingText('');
+      setIsStreaming(false);
+      setObjectionsDetected(0);
+
       const ws = new WebSocketManager(handleMessage, handleStateChange);
       ws.connect('/ws/coaching');
       wsRef.current = ws;
@@ -176,6 +191,12 @@ export default function App() {
       latestRepScriptRef.current = null;
     } else {
       // Connect to coaching WS
+      setTranscriptSegments([]);
+      setCoachingSuggestions([]);
+      setStreamingText('');
+      setIsStreaming(false);
+      setObjectionsDetected(0);
+
       const ws = new WebSocketManager(handleMessage, handleStateChange);
       ws.connect('/ws/coaching');
       wsRef.current = ws;

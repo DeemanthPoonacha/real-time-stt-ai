@@ -328,6 +328,7 @@ async def coaching_websocket(websocket: WebSocket):
 
             elif msg_type == "audio":
                 audio_data = message.get("data", "")
+                speaker = message.get("speaker", "rep")
                 if not audio_data:
                     continue
 
@@ -348,6 +349,7 @@ async def coaching_websocket(websocket: WebSocket):
                             "text": transcript_text,
                             "timestamp": segment.timestamp,
                             "language": segment.language,
+                            "speaker": speaker,
                         })
 
                         # Cancel any pending coaching task
@@ -355,7 +357,7 @@ async def coaching_websocket(websocket: WebSocket):
                             coaching_task.cancel()
 
                         coaching_task = asyncio.create_task(
-                            _stream_coaching(ai_coach, send_json, transcript_text, language=language)
+                            _stream_coaching(ai_coach, send_json, transcript_text, speaker=speaker, language=language)
                         )
 
                 await send_json({"type": "status", "state": "listening"})
@@ -378,7 +380,7 @@ async def coaching_websocket(websocket: WebSocket):
                         coaching_task.cancel()
 
                     coaching_task = asyncio.create_task(
-                        _stream_coaching(ai_coach, send_json, transcript_text, language=language)
+                        _stream_coaching(ai_coach, send_json, transcript_text, speaker=speaker, language=language)
                     )
                 elif speaker == "rep":
                     # Generate dynamic prospect response based on rep's input
@@ -435,11 +437,11 @@ async def coaching_websocket(websocket: WebSocket):
         await send_json({"type": "error", "message": str(e)[:200]})
 
 
-async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str, language: str = "en"):
+async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str, speaker: str = "unknown", language: str = "en"):
     """Shared helper: stream coaching from AI coach and send structured result."""
     try:
         full_response = ""
-        async for chunk in ai_coach.get_coaching(transcript_text, language=language):
+        async for chunk in ai_coach.get_coaching(transcript_text, speaker=speaker, language=language):
             full_response += chunk
             await send_json({
                 "type": "coaching_stream",
@@ -559,7 +561,7 @@ async def demo_websocket(websocket: WebSocket):
                 if segment.get("speaker") == "prospect":
                     try:
                         full_response = ""
-                        async for chunk in ai_coach.get_coaching(segment["text"], language=language):
+                        async for chunk in ai_coach.get_coaching(segment["text"], speaker=segment.get("speaker", "unknown"), language=language):
                             full_response += chunk
                             await send_json({
                                 "type": "coaching_stream",

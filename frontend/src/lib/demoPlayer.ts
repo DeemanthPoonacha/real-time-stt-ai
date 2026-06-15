@@ -43,6 +43,11 @@ export class DemoPlayer {
   private isDynamic = true;
   private dynamicTurnCount = 0;
 
+  // Web Audio elements for streaming TTS output to WebSocket
+  private audioContext: AudioContext | null = null;
+  private processor: ScriptProcessorNode | null = null;
+  private sourceNode: MediaElementAudioSourceNode | null = null;
+
   constructor({
     onTranscript,
     onSpeakingChange,
@@ -125,19 +130,7 @@ export class DemoPlayer {
 
     console.log(`🤖 demoPlayer: Received dynamic prospect response: "${text}"`);
 
-    // 4. Speak prospect's text via TTS and wait for it to finish
-    this.onSpeakingChange?.('prospect');
-    await this._speak(text, 'prospect');
-    this.onSpeakingChange?.(null);
-
-    // 1. Show transcript in UI immediately
-    this.onTranscript?.({
-      text: text,
-      speaker: 'prospect',
-      timestamp: Date.now() / 1000,
-    });
-
-    // 2. Report progress
+    // 1. Report progress
     this.onProgress?.({
       current: this.dynamicTurnCount,
       total: MAX_CONV_LIMIT,
@@ -145,13 +138,10 @@ export class DemoPlayer {
     });
     this.dynamicTurnCount++;
 
-    // 3. Send text to backend to sync conversation history and trigger AI Coach suggestions
-    this.wsManager?.send({
-      type: 'demo_text',
-      text: text,
-      speaker: 'prospect',
-    });
-
+    // 2. Speak prospect's text via TTS and wait for it to finish (this streams the audio to backend STT)
+    this.onSpeakingChange?.('prospect');
+    await this._speak(text, 'prospect');
+    this.onSpeakingChange?.(null);
 
     if (this.isCancelled) return;
 
@@ -348,19 +338,21 @@ export class DemoPlayer {
           this.audioCache.delete(cacheKey);
         }
 
-        // Show transcript in UI immediately
-        this.onTranscript?.({
-          text: textToSpeak,
-          speaker: segment.speaker,
-          timestamp: Date.now() / 1000,
-        });
+        if (segment.speaker === 'rep') {
+          // Show transcript in UI immediately
+          this.onTranscript?.({
+            text: textToSpeak,
+            speaker: segment.speaker,
+            timestamp: Date.now() / 1000,
+          });
 
-        // Send text to backend for coaching analysis (keeps LLM history in sync)
-        this.wsManager?.send({
-          type: 'demo_text',
-          text: textToSpeak,
-          speaker: segment.speaker,
-        });
+          // Send text to backend for coaching analysis (keeps LLM history in sync)
+          this.wsManager?.send({
+            type: 'demo_text',
+            text: textToSpeak,
+            speaker: segment.speaker,
+          });
+        }
 
         // Report progress
         this.onProgress?.({
@@ -396,6 +388,16 @@ export class DemoPlayer {
       synth.cancel();
 
       const fallbackToLocal = () => {
+        // Send backup text message to backend so that conversation doesn't get stuck if streaming fails
+        if (speaker === 'prospect') {
+          console.log(`⚠️ demoPlayer: TTS failed, sending prospect text as backup fallback: "${text}"`);
+          this.wsManager?.send({
+            type: 'demo_text',
+            text: text,
+            speaker: 'prospect',
+          });
+        }
+
         if (this.language === 'he') {
           const heVoices = synth.getVoices().filter(v => v.lang.startsWith('he') || v.lang.startsWith('iw'));
           if (heVoices.length > 0) {
@@ -442,12 +444,18 @@ export class DemoPlayer {
       audio.playbackRate = this.speed;
       audio.volume = 0.8;
 
+      if (speaker === 'prospect') {
+        this._startStreamingAudio(audio);
+      }
+
       audio.onended = () => {
+        this._stopStreamingAudio();
         (this as any)._activeAudio = null;
         resolve();
       };
 
       audio.onerror = (e) => {
+        this._stopStreamingAudio();
         console.warn("Backend neural TTS proxy failed, falling back to local speech synthesis:", e);
         (this as any)._activeAudio = null;
         fallbackToLocal();
@@ -455,7 +463,9 @@ export class DemoPlayer {
 
       (this as any)._activeAudio = audio;
       audio.play().catch(err => {
+        this._stopStreamingAudio();
         console.warn("Audio play blocked, falling back to local speech synthesis:", err);
+        (this as any)._activeAudio = null;
         fallbackToLocal();
       });
     });
@@ -467,6 +477,7 @@ export class DemoPlayer {
   stop() {
     this.isCancelled = true;
     window.speechSynthesis.cancel();
+    this._stopStreamingAudio();
     if ((this as any)._activeAudio) {
       try {
         (this as any)._activeAudio.pause();
@@ -476,6 +487,72 @@ export class DemoPlayer {
     this.audioCache.clear();
     this.latestRepScript = null;
     this.onSpeakingChange?.(null);
+  }
+
+  private _startStreamingAudio(audio: HTMLAudioElement) {
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
+          sampleRate: 16000,
+        });
+      }
+
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+
+      audio.crossOrigin = 'anonymous';
+
+      const source = this.audioContext.createMediaElementSource(audio);
+      this.sourceNode = source;
+      source.connect(this.audioContext.destination);
+
+      const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      source.connect(processor);
+      processor.connect(this.audioContext.destination);
+      this.processor = processor;
+
+      processor.onaudioprocess = (e) => {
+        if (this.isCancelled || !this.wsManager) return;
+
+        const float32 = e.inputBuffer.getChannelData(0);
+        const int16 = new Int16Array(float32.length);
+        for (let i = 0; i < float32.length; i++) {
+          const s = Math.max(-1, Math.min(1, float32[i]));
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        const bytes = new Uint8Array(int16.buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64 = btoa(binary);
+
+        this.wsManager.send({
+          type: 'audio',
+          data: base64,
+          speaker: 'prospect',
+        });
+      };
+    } catch (err) {
+      console.error('Failed to stream audio of element:', err);
+    }
+  }
+
+  private _stopStreamingAudio() {
+    if (this.processor) {
+      try {
+        this.processor.disconnect();
+      } catch (e) {}
+      this.processor = null;
+    }
+    if (this.sourceNode) {
+      try {
+        this.sourceNode.disconnect();
+      } catch (e) {}
+      this.sourceNode = null;
+    }
   }
 
   private _sleep(ms: number): Promise<void> {
