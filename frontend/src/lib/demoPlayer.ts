@@ -17,6 +17,7 @@ interface Segment {
 }
 
 const API_BASE = `http://${window.location.hostname}:8000`;
+const MAX_CONV_LIMIT = 10;
 
 export class DemoPlayer {
   private onTranscript?: (segment: { text: string; speaker: string; timestamp: number }) => void;
@@ -39,6 +40,8 @@ export class DemoPlayer {
   // Low-latency cache and dynamic response state
   private latestRepScript: string | null = null;
   private audioCache = new Map<string, HTMLAudioElement>();
+  private isDynamic = true;
+  private dynamicTurnCount = 0;
 
   constructor({
     onTranscript,
@@ -75,11 +78,11 @@ export class DemoPlayer {
       const femaleKeywords = ['female', 'samantha', 'karen', 'victoria', 'zira', 'google uk english female'];
 
       this._repVoice = fallback.find(v =>
-          maleKeywords.some(k => v.name.toLowerCase().includes(k))
+        maleKeywords.some(k => v.name.toLowerCase().includes(k))
       ) || fallback[0];
 
       this._prospectVoice = fallback.find(v =>
-          femaleKeywords.some(k => v.name.toLowerCase().includes(k))
+        femaleKeywords.some(k => v.name.toLowerCase().includes(k))
       ) || fallback[Math.min(1, fallback.length - 1)];
     };
 
@@ -117,6 +120,128 @@ export class DemoPlayer {
     this.audioCache.set(cacheKey, audio);
   }
 
+  async handleDynamicProspectResponse(text: string) {
+    if (this.isCancelled) return;
+
+    console.log(`🤖 demoPlayer: Received dynamic prospect response: "${text}"`);
+
+    // 4. Speak prospect's text via TTS and wait for it to finish
+    this.onSpeakingChange?.('prospect');
+    await this._speak(text, 'prospect');
+    this.onSpeakingChange?.(null);
+
+    // 1. Show transcript in UI immediately
+    this.onTranscript?.({
+      text: text,
+      speaker: 'prospect',
+      timestamp: Date.now() / 1000,
+    });
+
+    // 2. Report progress
+    this.onProgress?.({
+      current: this.dynamicTurnCount,
+      total: MAX_CONV_LIMIT,
+      speaker: 'prospect',
+    });
+    this.dynamicTurnCount++;
+
+    // 3. Send text to backend to sync conversation history and trigger AI Coach suggestions
+    this.wsManager?.send({
+      type: 'demo_text',
+      text: text,
+      speaker: 'prospect',
+    });
+
+
+    if (this.isCancelled) return;
+
+    // 5. Wait for pacing delay before representative speaks
+    const pacingDelay = (2500 / this.speed);
+    await this._sleep(pacingDelay);
+
+    if (this.isCancelled) return;
+
+    // End call if we reached the turn limit (MAX_CONV_LIMIT turns total)
+    if (this.dynamicTurnCount > MAX_CONV_LIMIT && !this.isCancelled) {
+      console.log("🏁 demoPlayer: Reached dynamic turn limit. Completing demo.");
+
+      // Let's speak a concluding line to wrap up cleanly
+      const wrapupText = this.language === 'he'
+        ? "נהדר שרה, אשלח לך את הסיכום והתמחור והצעת ה-CTO מייד. תודה רבה!"
+        : "Great Sarah, I will send you the cost summary and the CTO call proposal right away. Thank you!";
+
+      this.onTranscript?.({
+        text: wrapupText,
+        speaker: 'rep',
+        timestamp: Date.now() / 1000,
+      });
+
+      this.onSpeakingChange?.('rep');
+      await this._speak(wrapupText, 'rep');
+      this.onSpeakingChange?.(null);
+
+      this.onComplete?.();
+
+      return;
+    }
+
+    // 6. Representative speaks the dynamic AI script suggested by the AI Coach.
+    // Wait for the coaching script suggestion to be generated.
+    let script = this.latestRepScript;
+    if (!script) {
+      console.log("⏳ demoPlayer: Waiting for AI representative suggestion script...");
+      for (let attempt = 0; attempt < 45; attempt++) {
+        await this._sleep(100);
+        if (this.latestRepScript) {
+          script = this.latestRepScript;
+          break;
+        }
+      }
+    }
+
+    if (!script) {
+      // Fallback if AI coaching fails or is too slow to load
+      script = this.language === 'he'
+        ? "הבנתי. בואי נדבר על איך נוכל לעזור לכם לפתור את זה."
+        : "I see. Let's discuss how we can help you solve that.";
+    }
+
+    // Reset rep script
+    this.latestRepScript = null;
+
+    // Retrieve pre-fetched dynamic audio if available
+    const audioToPlay = this.audioCache.get('dynamic-rep') || null;
+    this.audioCache.delete('dynamic-rep');
+
+    // Show representative transcript in UI
+    this.onTranscript?.({
+      text: script,
+      speaker: 'rep',
+      timestamp: Date.now() / 1000,
+    });
+
+    // Report progress
+    this.onProgress?.({
+      current: this.dynamicTurnCount,
+      total: MAX_CONV_LIMIT,
+      speaker: 'rep',
+    });
+    this.dynamicTurnCount++;
+
+    // Speak representative script
+    this.onSpeakingChange?.('rep');
+    await this._speak(script, 'rep', audioToPlay);
+    this.onSpeakingChange?.(null);
+
+    // Send rep response to backend to trigger the next dynamic prospect turn!
+    this.wsManager?.send({
+      type: 'demo_text',
+      text: script,
+      speaker: 'rep',
+    });
+
+  }
+
   language = 'en';
 
   /**
@@ -146,7 +271,40 @@ export class DemoPlayer {
 
       console.log(`🎬 Demo loaded: ${this.segments.length} segments`);
 
-      // Pre-fetch the first segment
+      if (this.isDynamic) {
+        this.dynamicTurnCount = 1;
+        const greetingSegment = this.segments[0];
+        console.log(`🎬 Running Demo in Dynamic AI-vs-AI mode! Initial greeting: "${greetingSegment.text}"`);
+
+        // Show greeting in UI
+        this.onTranscript?.({
+          text: greetingSegment.text,
+          speaker: greetingSegment.speaker,
+          timestamp: Date.now() / 1000,
+        });
+
+        // Report initial progress
+        this.onProgress?.({
+          current: 1,
+          total: MAX_CONV_LIMIT,
+          speaker: greetingSegment.speaker,
+        });
+
+        // Speak greeting
+        this.onSpeakingChange?.(greetingSegment.speaker);
+        await this._speak(greetingSegment.text, greetingSegment.speaker);
+        this.onSpeakingChange?.(null);
+
+        // Send greeting to backend to kick off conversation history and prospect generator
+        this.wsManager?.send({
+          type: 'demo_text',
+          text: greetingSegment.text,
+          speaker: greetingSegment.speaker,
+        });
+        return;
+      }
+
+      // Pre-fetch the first segment (static fallback mode)
       this._prefetchNextSegment(0);
 
       // Play each segment sequentially
@@ -288,13 +446,13 @@ export class DemoPlayer {
         (this as any)._activeAudio = null;
         resolve();
       };
-      
+
       audio.onerror = (e) => {
         console.warn("Backend neural TTS proxy failed, falling back to local speech synthesis:", e);
         (this as any)._activeAudio = null;
         fallbackToLocal();
       };
-      
+
       (this as any)._activeAudio = audio;
       audio.play().catch(err => {
         console.warn("Audio play blocked, falling back to local speech synthesis:", err);
@@ -312,7 +470,7 @@ export class DemoPlayer {
     if ((this as any)._activeAudio) {
       try {
         (this as any)._activeAudio.pause();
-      } catch (e) {}
+      } catch (e) { }
       (this as any)._activeAudio = null;
     }
     this.audioCache.clear();

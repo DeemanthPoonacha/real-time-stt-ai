@@ -30,10 +30,11 @@ from config import settings, DATA_DIR
 from stt_engine import STTEngine
 from rag_engine import RAGEngine
 from ai_coach import AICoach
+from data.prompts import PROSPECT_SYSTEM_PROMPT
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
 )
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ async def pre_cache_demo_transcripts():
             with open(demo_path, "r", encoding="utf-8") as f:
                 demo_data = json.load(f)
             segments = demo_data.get("segments", [])
-            for segment in segments:
+            for index, segment in enumerate(segments):
                 text = segment.get("text", "").strip()
                 speaker = segment.get("speaker", "unknown")
                 if not text:
@@ -69,7 +70,7 @@ async def pre_cache_demo_transcripts():
                 # Check cache first
                 cache_str = f"{lang}:{speaker}:{text}"
                 cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
-                cache_file = TTS_CACHE_DIR / f"{text[:10].replace(' ', '_')}_{cache_key}.mp3"
+                cache_file = TTS_CACHE_DIR / f"{lang}_{index}_{text[:10].replace(' ', '_')}_{cache_key}.mp3"
                 if cache_file.exists() and cache_file.stat().st_size > 0:
                     continue
 
@@ -109,7 +110,7 @@ async def lifespan(app: FastAPI):
     await stt_engine.initialize()
 
     # Pre-cache static demo transcripts in background
-    asyncio.create_task(pre_cache_demo_transcripts())
+    # asyncio.create_task(pre_cache_demo_transcripts())
 
     logger.info("✅ All systems ready!")
     logger.info(f"   STT Provider: {settings.STT_PROVIDER}")
@@ -222,7 +223,7 @@ async def get_demo_transcript(language: str = "en"):
         return json.load(f)
 
 
-TTS_CACHE_DIR = DATA_DIR / "tts_cache"
+TTS_CACHE_DIR = DATA_DIR / "tts_cache" / "dynamic"
 TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -366,6 +367,9 @@ async def coaching_websocket(websocket: WebSocket):
                 if not transcript_text:
                     continue
 
+                # Synchronize history so both speakers are part of the LLM context
+                ai_coach.add_transcript(transcript_text, speaker)
+
                 await send_json({"type": "status", "state": "processing"})
 
                 # Only generate coaching for prospect's speech
@@ -376,6 +380,51 @@ async def coaching_websocket(websocket: WebSocket):
                     coaching_task = asyncio.create_task(
                         _stream_coaching(ai_coach, send_json, transcript_text, language=language)
                     )
+                elif speaker == "rep":
+                    # Generate dynamic prospect response based on rep's input
+                    async def generate_prospect():
+                        try:
+                            lang_name = "Hebrew" if language == "he" else "English"
+                            system_prompt = PROSPECT_SYSTEM_PROMPT.format(language_name=lang_name)
+                            
+                            messages = [{"role": "system", "content": system_prompt}]
+                            
+                            # Append recent context
+                            for entry in ai_coach.conversation_history[-8:]:
+                                role = "assistant" if entry["speaker"] == "prospect" else "user"
+                                messages.append({"role": role, "content": entry["text"]})
+                                
+                            response = await ai_coach.client.chat.completions.create(
+                                model=ai_coach.model,
+                                messages=messages,
+                                max_tokens=150,
+                                temperature=0.7,
+                            )
+                            prospect_text = response.choices[0].message.content.strip()
+                            
+                            # Clean dynamic response markup/quotes
+                            if prospect_text.startswith('"') and prospect_text.endswith('"'):
+                                prospect_text = prospect_text[1:-1]
+                            elif prospect_text.startswith('“') and prospect_text.endswith('”'):
+                                prospect_text = prospect_text[1:-1]
+                                
+                            if prospect_text.lower().startswith("sarah:"):
+                                prospect_text = prospect_text[len("sarah:"):].strip()
+                            prospect_text = prospect_text.strip('"“’\'')
+                            
+                            await send_json({
+                                "type": "prospect_response",
+                                "text": prospect_text,
+                            })
+                        except Exception as e:
+                            logger.error(f"Error generating prospect response: {e}")
+                            fallback = "אני מבינה. תוכל להסביר עוד?" if language == "he" else "I see. Can you explain more?"
+                            await send_json({
+                                "type": "prospect_response",
+                                "text": fallback,
+                            })
+                            
+                    asyncio.create_task(generate_prospect())
 
                 await send_json({"type": "status", "state": "listening"})
 

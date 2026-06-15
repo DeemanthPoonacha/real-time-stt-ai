@@ -86,6 +86,12 @@ export default function App() {
         setIsStreaming(false);
         break;
 
+      case 'prospect_response':
+        if (demoRef.current) {
+          demoRef.current.handleDynamicProspectResponse(data.text);
+        }
+        break;
+
       case 'coaching_stream':
         if (data.done) {
           setIsStreaming(false);
@@ -160,8 +166,6 @@ export default function App() {
       // Stop demo
       demoRef.current?.stop();
       demoRef.current = null;
-      audioRef.current?.stop();
-      audioRef.current = null;
       wsRef.current?.disconnect();
       wsRef.current = null;
       setIsDemo(false);
@@ -181,69 +185,54 @@ export default function App() {
 
       ws.sendConfig({ language });
 
-      // Start Audio Capture with echoCancellation disabled so it hears the speakers
-      const audio = new AudioCapture(ws, setAudioLevel, {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
+      const demo = new DemoPlayer({
+        onTranscript: (segment) => {
+          setTranscriptSegments(prev => [...prev, {
+            text: segment.text,
+            speaker: segment.speaker,
+            timestamp: segment.timestamp,
+          }]);
+        },
+        onSpeakingChange: (speaker) => {
+          setDemoSpeaker(speaker);
+        },
+        onProgress: (progress) => {
+          setDemoProgress(progress);
+          setConnectionState('processing');
+        },
+        onComplete: () => {
+          setIsDemo(false);
+          setDemoSpeaker(null);
+          setDemoProgress(null);
+          setCallStartTime(null);
+          setConnectionState('connected');
+          wsRef.current?.disconnect();
+          wsRef.current = null;
+          latestRepScriptRef.current = null;
+        },
+        onError: (msg) => {
+          console.error('Demo error:', msg);
+          setIsDemo(false);
+          setDemoSpeaker(null);
+          setDemoProgress(null);
+          setCallStartTime(null);
+          setConnectionState('disconnected');
+          wsRef.current?.disconnect();
+          wsRef.current = null;
+          latestRepScriptRef.current = null;
+        },
+        getLatestRepScript: () => latestRepScriptRef.current,
+        clearLatestRepScript: () => {
+          latestRepScriptRef.current = null;
+        }
       });
-      const started = await audio.start();
 
-      if (started) {
-        audioRef.current = audio;
+      demoRef.current = demo;
+      setIsDemo(true);
+      setCallStartTime(Date.now());
 
-        const demo = new DemoPlayer({
-          onTranscript: (segment) => {
-            console.log(`[Demo TTS] ${segment.speaker}: "${segment.text}"`);
-          },
-          onSpeakingChange: (speaker) => {
-            setDemoSpeaker(speaker);
-          },
-          onProgress: (progress) => {
-            setDemoProgress(progress);
-            setConnectionState('processing');
-          },
-          onComplete: () => {
-            setIsDemo(false);
-            setDemoSpeaker(null);
-            setDemoProgress(null);
-            setCallStartTime(null);
-            setConnectionState('connected');
-            audioRef.current?.stop();
-            audioRef.current = null;
-            wsRef.current?.disconnect();
-            wsRef.current = null;
-            latestRepScriptRef.current = null;
-          },
-          onError: (msg) => {
-            console.error('Demo error:', msg);
-            setIsDemo(false);
-            setDemoSpeaker(null);
-            setDemoProgress(null);
-            setCallStartTime(null);
-            setConnectionState('disconnected');
-            audioRef.current?.stop();
-            audioRef.current = null;
-            wsRef.current?.disconnect();
-            wsRef.current = null;
-            latestRepScriptRef.current = null;
-          },
-          getLatestRepScript: () => latestRepScriptRef.current,
-          clearLatestRepScript: () => {
-            latestRepScriptRef.current = null;
-          }
-        });
-
-        demoRef.current = demo;
-        setIsDemo(true);
-        setCallStartTime(Date.now());
-
-        // Start TTS playback
-        demo.start(ws, 1.0, language);
-      } else {
-        ws.disconnect();
-        alert('Failed to access microphone. Microphone access is required to capture the TTS speaker output for transcription.');
-      }
+      // Start TTS playback
+      demo.start(ws, 1.0, language);
     }
   }, [isDemo, language, handleMessage, handleStateChange]);
 

@@ -66,6 +66,9 @@ class AICoach:
         else:
             rag_context = "(No specific playbook context found for this conversation segment.)"
 
+        logger.debug(f"Transcript: {transcript}")
+        logger.debug(f"RAG context: {rag_context}")
+
         prompt = (
             SALES_COACH_SYSTEM_PROMPT.replace("{rag_context}", rag_context)
             .replace("{transcript}", transcript)
