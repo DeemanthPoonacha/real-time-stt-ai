@@ -69,7 +69,7 @@ async def pre_cache_demo_transcripts():
                 # Check cache first
                 cache_str = f"{lang}:{speaker}:{text}"
                 cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
-                cache_file = TTS_CACHE_DIR / f"{cache_key}.mp3"
+                cache_file = TTS_CACHE_DIR / f"{text[:10].replace(' ', '_')}_{cache_key}.mp3"
                 if cache_file.exists() and cache_file.stat().st_size > 0:
                     continue
 

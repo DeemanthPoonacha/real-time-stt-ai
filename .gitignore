@@ -31,3 +31,5 @@ Thumbs.db
 # Whisper models cache
 *.bin
 *.pt
+
+*.mp3
