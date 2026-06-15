@@ -45,6 +45,7 @@ export default function App() {
   const demoRef = useRef<DemoPlayer | null>(null);
   const isDemoRef = useRef<boolean>(isDemo);
   const demoSpeakerRef = useRef<string | null>(demoSpeaker);
+  const latestRepScriptRef = useRef<string | null>(null);
 
   // Keep refs in sync with state for use inside useCallback closures
   useEffect(() => {
@@ -71,6 +72,12 @@ export default function App() {
       case 'coaching':
         if (data.data) {
           setCoachingSuggestions(prev => [...prev, data.data]);
+          if (data.data.script) {
+            latestRepScriptRef.current = data.data.script;
+            if (demoRef.current) {
+              demoRef.current.setDynamicRepScript(data.data.script);
+            }
+          }
           if (data.data.type === 'objection') {
             setObjectionsDetected(prev => prev + 1);
           }
@@ -162,6 +169,7 @@ export default function App() {
       setDemoSpeaker(null);
       setDemoProgress(null);
       setConnectionState('disconnected');
+      latestRepScriptRef.current = null;
     } else {
       // Connect to coaching WS
       const ws = new WebSocketManager(handleMessage, handleStateChange);
@@ -205,6 +213,7 @@ export default function App() {
             audioRef.current = null;
             wsRef.current?.disconnect();
             wsRef.current = null;
+            latestRepScriptRef.current = null;
           },
           onError: (msg) => {
             console.error('Demo error:', msg);
@@ -217,7 +226,12 @@ export default function App() {
             audioRef.current = null;
             wsRef.current?.disconnect();
             wsRef.current = null;
+            latestRepScriptRef.current = null;
           },
+          getLatestRepScript: () => latestRepScriptRef.current,
+          clearLatestRepScript: () => {
+            latestRepScriptRef.current = null;
+          }
         });
 
         demoRef.current = demo;
@@ -261,6 +275,7 @@ export default function App() {
     setDemoSpeaker(null);
     setDemoProgress(null);
     setConnectionState('disconnected');
+    latestRepScriptRef.current = null;
     window.speechSynthesis.cancel();
   }, []);
 

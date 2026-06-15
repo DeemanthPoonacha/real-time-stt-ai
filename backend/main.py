@@ -16,12 +16,13 @@ import json
 import asyncio
 import logging
 import time
+import hashlib
 from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 import httpx
 
@@ -44,6 +45,52 @@ rag_engine = RAGEngine()
 stt_engine: STTEngine | None = None
 
 
+async def pre_cache_demo_transcripts():
+    """Pre-cache TTS audio files for static demo transcripts to eliminate startup latency."""
+    import edge_tts
+
+    logger.info("🎙️ Starting background demo transcript pre-caching...")
+    langs_to_cache = ["en", "he"]
+    for lang in langs_to_cache:
+        file_name = "demo_transcript_he.json" if lang == "he" else "demo_transcript.json"
+        demo_path = DATA_DIR / file_name
+        if not demo_path.exists():
+            continue
+        try:
+            with open(demo_path, "r", encoding="utf-8") as f:
+                demo_data = json.load(f)
+            segments = demo_data.get("segments", [])
+            for segment in segments:
+                text = segment.get("text", "").strip()
+                speaker = segment.get("speaker", "unknown")
+                if not text:
+                    continue
+
+                # Check cache first
+                cache_str = f"{lang}:{speaker}:{text}"
+                cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
+                cache_file = TTS_CACHE_DIR / f"{cache_key}.mp3"
+                if cache_file.exists() and cache_file.stat().st_size > 0:
+                    continue
+
+                # Determine voice
+                if lang == "he":
+                    voice = "he-IL-AvriNeural" if speaker == "rep" else "he-IL-HilaNeural"
+                else:
+                    voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
+
+                try:
+                    logger.info(f"Pre-caching static TTS: lang={lang}, speaker={speaker}, text='{text[:20]}...'")
+                    communicate = edge_tts.Communicate(text, voice)
+                    await communicate.save(str(cache_file))
+                except Exception as e:
+                    logger.warning(f"Failed to pre-cache segment for {lang}: {e}")
+        except Exception as e:
+            logger.error(f"Error loading demo transcript for pre-caching ({lang}): {e}")
+
+    logger.info("✅ Background demo transcript pre-caching complete!")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize services on startup, cleanup on shutdown."""
@@ -60,6 +107,9 @@ async def lifespan(app: FastAPI):
     # Initialize STT engine
     stt_engine = STTEngine()
     await stt_engine.initialize()
+
+    # Pre-cache static demo transcripts in background
+    asyncio.create_task(pre_cache_demo_transcripts())
 
     logger.info("✅ All systems ready!")
     logger.info(f"   STT Provider: {settings.STT_PROVIDER}")
@@ -172,33 +222,53 @@ async def get_demo_transcript(language: str = "en"):
         return json.load(f)
 
 
+TTS_CACHE_DIR = DATA_DIR / "tts_cache"
+TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
 @app.get("/api/tts")
-async def get_tts(text: str, lang: str = "he"):
+async def get_tts(text: str, lang: str = "he", speaker: str = "rep"):
     """
-    Proxy Google Translate TTS to avoid CORS / Referrer policy / decoder issues.
+    Generate TTS using Microsoft Edge TTS for natural, distinguished neural voices.
+    Uses filesystem caching to serve repeat requests instantaneously.
     """
-    import urllib.parse
-    encoded_text = urllib.parse.quote(text)
-    tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&tl={lang}&client=tw-ob&q={encoded_text}"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-    
-    client = httpx.AsyncClient()
-    
-    async def stream_generator():
-        try:
-            async with client.stream("GET", tts_url, headers=headers, follow_redirects=True) as r:
-                r.raise_for_status()
-                async for chunk in r.aiter_bytes():
-                    yield chunk
-        except Exception as e:
-            logger.error(f"Error streaming TTS from Google: {e}")
-        finally:
-            await client.aclose()
-            
-    return StreamingResponse(stream_generator(), media_type="audio/mpeg")
+    import edge_tts
+
+    cleaned_text = text.strip()
+    if not cleaned_text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+
+    # Generate cache key using MD5 hash of the parameters
+    cache_str = f"{lang}:{speaker}:{cleaned_text}"
+    cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
+    cache_file = TTS_CACHE_DIR / f"{cache_key}.mp3"
+
+    # Serve from cache if available
+    if cache_file.exists() and cache_file.stat().st_size > 0:
+        return FileResponse(cache_file, media_type="audio/mpeg")
+
+    # Choose voice based on language and speaker
+    if lang == "he":
+        voice = "he-IL-AvriNeural" if speaker == "rep" else "he-IL-HilaNeural"
+    else:  # en or other
+        voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
+
+    logger.info(f"Generating TTS: voice={voice}, speaker={speaker}, text='{cleaned_text[:30]}...'")
+
+    try:
+        communicate = edge_tts.Communicate(cleaned_text, voice)
+        # Save to cache file
+        await communicate.save(str(cache_file))
+        return FileResponse(cache_file, media_type="audio/mpeg")
+    except Exception as e:
+        logger.error(f"Failed to generate TTS: {e}")
+        # Clean up any partial files
+        if cache_file.exists():
+            try:
+                cache_file.unlink()
+            except Exception:
+                pass
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 
 # --- WebSocket: Main Coaching Pipeline ---
