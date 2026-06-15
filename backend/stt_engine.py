@@ -356,6 +356,30 @@ class STTEngine:
         """Clear the audio buffer."""
         self.audio_buffer = np.array([], dtype=np.float32)
 
+    async def flush(self, language: str | None = None) -> list[TranscriptSegment]:
+        """
+        Transcribe any remaining audio in the buffer.
+        Useful when the speaker finishes speaking.
+        """
+        if not self._initialized:
+            return []
+
+        if len(self.audio_buffer) == 0:
+            return []
+
+        # Transcribe the remaining buffered audio
+        audio_to_transcribe = self.audio_buffer.copy()
+        self.audio_buffer = np.array([], dtype=np.float32)
+
+        # Apply simple energy-based VAD
+        energy = np.sqrt(np.mean(audio_to_transcribe ** 2))
+        if energy < 0.01:  # Silence threshold
+            logger.debug("Flush: audio chunk below energy threshold, skipping")
+            return []
+
+        segments = await self.provider.transcribe(audio_to_transcribe, language)
+        return [s for s in segments if s.text.strip()]
+
     async def cleanup(self):
         """Clean up resources."""
         await self.provider.cleanup()

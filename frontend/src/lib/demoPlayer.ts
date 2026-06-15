@@ -42,6 +42,8 @@ export class DemoPlayer {
   private audioCache = new Map<string, HTMLAudioElement>();
   private isDynamic = true;
   private dynamicTurnCount = 0;
+  private waitingForFlush = false;
+  private repTriggerResolve: ((script: string) => void) | null = null;
 
   // Web Audio elements for streaming TTS output to WebSocket
   private audioContext: AudioContext | null = null;
@@ -109,6 +111,27 @@ export class DemoPlayer {
     this.audioCache.set('dynamic-rep', audio);
   }
 
+  handleFlushDone() {
+    console.log("🏁 demoPlayer: STT buffer flushed and final coaching suggestions streamed.");
+    this.waitingForFlush = false;
+  }
+
+  waitForRepTrigger(): Promise<string> {
+    return new Promise((resolve) => {
+      this.repTriggerResolve = resolve;
+    });
+  }
+
+  triggerRepresentativeResponse(script: string) {
+    if (this.repTriggerResolve) {
+      console.log(`📡 demoPlayer: User manually triggered rep script: "${script.substring(0, 30)}..."`);
+      this.repTriggerResolve(script);
+      this.repTriggerResolve = null;
+    } else {
+      console.warn("⚠️ demoPlayer: No active representative turn waiting for trigger.");
+    }
+  }
+
   private _prefetchNextSegment(index: number) {
     if (index >= this.segments.length) return;
     const cacheKey = `static-${index}`;
@@ -145,9 +168,19 @@ export class DemoPlayer {
 
     if (this.isCancelled) return;
 
-    // 5. Wait for pacing delay before representative speaks
-    const pacingDelay = (2500 / this.speed);
-    await this._sleep(pacingDelay);
+    // 3. Flush the backend STT buffer and wait for the final suggestion to finish streaming
+    if (this.wsManager) {
+      console.log("📡 demoPlayer: Sending flush to backend STT...");
+      this.waitingForFlush = true;
+      this.wsManager.send({
+        type: 'flush',
+        speaker: 'prospect',
+      });
+      // Wait for flush to be complete (deterministic backend-driven sync loop)
+      while (this.waitingForFlush && !this.isCancelled) {
+        await this._sleep(100);
+      }
+    }
 
     if (this.isCancelled) return;
 
@@ -157,8 +190,8 @@ export class DemoPlayer {
 
       // Let's speak a concluding line to wrap up cleanly
       const wrapupText = this.language === 'he'
-        ? "נהדר שרה, אשלח לך את הסיכום והתמחור והצעת ה-CTO מייד. תודה רבה!"
-        : "Great Sarah, I will send you the cost summary and the CTO call proposal right away. Thank you!";
+        ? "נהדר שרה, אשלח לך את הסיכום והתמחור מייד. תודה רבה!"
+        : "Great Sarah, I will send you the cost summary right away. Thank you!";
 
       this.onTranscript?.({
         text: wrapupText,
@@ -171,30 +204,14 @@ export class DemoPlayer {
       this.onSpeakingChange?.(null);
 
       this.onComplete?.();
-
       return;
     }
 
-    // 6. Representative speaks the dynamic AI script suggested by the AI Coach.
-    // Wait for the coaching script suggestion to be generated.
-    let script = this.latestRepScript;
-    if (!script) {
-      console.log("⏳ demoPlayer: Waiting for AI representative suggestion script...");
-      for (let attempt = 0; attempt < 45; attempt++) {
-        await this._sleep(100);
-        if (this.latestRepScript) {
-          script = this.latestRepScript;
-          break;
-        }
-      }
-    }
+    // 4. Wait for the user to trigger the representative's response by clicking the play button next to the suggestion
+    console.log("⏳ demoPlayer: Pausing. Awaiting user's manual trigger via 'Speak Suggested Script' button...");
+    const scriptToSpeak = await this.waitForRepTrigger();
 
-    if (!script) {
-      // Fallback if AI coaching fails or is too slow to load
-      script = this.language === 'he'
-        ? "הבנתי. בואי נדבר על איך נוכל לעזור לכם לפתור את זה."
-        : "I see. Let's discuss how we can help you solve that.";
-    }
+    if (this.isCancelled) return;
 
     // Reset rep script
     this.latestRepScript = null;
@@ -205,7 +222,7 @@ export class DemoPlayer {
 
     // Show representative transcript in UI
     this.onTranscript?.({
-      text: script,
+      text: scriptToSpeak,
       speaker: 'rep',
       timestamp: Date.now() / 1000,
     });
@@ -220,13 +237,13 @@ export class DemoPlayer {
 
     // Speak representative script
     this.onSpeakingChange?.('rep');
-    await this._speak(script, 'rep', audioToPlay);
+    await this._speak(scriptToSpeak, 'rep', audioToPlay);
     this.onSpeakingChange?.(null);
 
     // Send rep response to backend to trigger the next dynamic prospect turn!
     this.wsManager?.send({
       type: 'demo_text',
-      text: script,
+      text: scriptToSpeak,
       speaker: 'rep',
     });
 
@@ -317,17 +334,26 @@ export class DemoPlayer {
         let audioToPlay: HTMLAudioElement | null = null;
 
         if (segment.speaker === 'rep') {
-          // Check if AI generated a live response for the rep's turn
-          const aiScript = this.latestRepScript || this.getLatestRepScript?.();
-          if (aiScript && aiScript.trim()) {
-            textToSpeak = aiScript;
+          if (i > 0) {
+            console.log(`⏳ demoPlayer (static): Pausing at segment ${i}. Awaiting user trigger...`);
+            textToSpeak = await this.waitForRepTrigger();
             this.latestRepScript = null;
             this.clearLatestRepScript?.();
-
-            // Check if we have pre-fetched dynamic audio
             audioToPlay = this.audioCache.get('dynamic-rep') || null;
             this.audioCache.delete('dynamic-rep');
-            console.log(`🤖 demoPlayer: Rep speaking live AI response: "${textToSpeak}"`);
+          } else {
+            // Check if AI generated a live response for the rep's turn
+            const aiScript = this.latestRepScript || this.getLatestRepScript?.();
+            if (aiScript && aiScript.trim()) {
+              textToSpeak = aiScript;
+              this.latestRepScript = null;
+              this.clearLatestRepScript?.();
+
+              // Check if we have pre-fetched dynamic audio
+              audioToPlay = this.audioCache.get('dynamic-rep') || null;
+              this.audioCache.delete('dynamic-rep');
+              console.log(`🤖 demoPlayer: Rep speaking live AI response: "${textToSpeak}"`);
+            }
           }
         }
 
@@ -365,6 +391,21 @@ export class DemoPlayer {
         this.onSpeakingChange?.(segment.speaker);
         await this._speak(textToSpeak, segment.speaker, audioToPlay);
         this.onSpeakingChange?.(null);
+
+        if (this.isCancelled) break;
+
+        // Flush and wait for suggestions if the prospect was speaking
+        if (segment.speaker === 'prospect' && this.wsManager) {
+          console.log("📡 demoPlayer (static): Sending flush to backend STT...");
+          this.waitingForFlush = true;
+          this.wsManager.send({
+            type: 'flush',
+            speaker: 'prospect',
+          });
+          while (this.waitingForFlush && !this.isCancelled) {
+            await this._sleep(100);
+          }
+        }
 
         if (this.isCancelled) break;
       }
@@ -478,6 +519,7 @@ export class DemoPlayer {
     this.isCancelled = true;
     window.speechSynthesis.cancel();
     this._stopStreamingAudio();
+    this.repTriggerResolve = null;
     if ((this as any)._activeAudio) {
       try {
         (this as any)._activeAudio.pause();

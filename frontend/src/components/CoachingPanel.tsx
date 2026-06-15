@@ -14,6 +14,7 @@ interface CoachingPanelProps {
   streamingText: string;
   isStreaming: boolean;
   language: string;
+  onSpeakScript?: (script: string) => void;
 }
 
 interface ParsedStream {
@@ -28,7 +29,7 @@ interface ParsedStream {
  * CoachingPanel — Renders AI coach feedback dynamically.
  * Features stateful click-to-copy tags, streaming animation logs, and category color codings.
  */
-export default function CoachingPanel({ suggestions, streamingText, isStreaming, language }: CoachingPanelProps) {
+export default function CoachingPanel({ suggestions, streamingText, isStreaming, language, onSpeakScript }: CoachingPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
@@ -255,9 +256,21 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                               )}
                             </button>
                           </div>
-                          <p className="text-xs text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10">
+                          <p className="text-xl text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10 mb-2.5">
                             "{suggestion.script}"
                           </p>
+
+                          {onSpeakScript && (
+                            <button
+                              onClick={() => onSpeakScript(suggestion.script!)}
+                              className="w-full flex items-center justify-center gap-2 mt-2.5 px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                              </svg>
+                              <span>{language === 'he' ? 'דבר תסריט מוצע' : 'Speak Suggested Script'}</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

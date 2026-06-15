@@ -97,6 +97,12 @@ export default function App() {
         }
         break;
 
+      case 'flush_done':
+        if (demoRef.current) {
+          demoRef.current.handleFlushDone();
+        }
+        break;
+
       case 'coaching_stream':
         if (data.done) {
           setIsStreaming(false);
@@ -132,6 +138,13 @@ export default function App() {
   // --- Connection State Handler ---
   const handleStateChange = useCallback((state: string) => {
     setConnectionState(state);
+  }, []);
+
+  // --- Speak Suggested Script (Demo Manual Trigger) ---
+  const handleSpeakSuggestedScript = useCallback((script: string) => {
+    if (demoRef.current) {
+      demoRef.current.triggerRepresentativeResponse(script);
+    }
   }, []);
 
   // --- Toggle Recording ---
@@ -423,6 +436,7 @@ export default function App() {
             streamingText={streamingText}
             isStreaming={isStreaming}
             language={language}
+            onSpeakScript={isDemo ? handleSpeakSuggestedScript : undefined}
           />
         </div>
 

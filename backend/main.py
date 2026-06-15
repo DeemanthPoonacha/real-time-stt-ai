@@ -430,6 +430,37 @@ async def coaching_websocket(websocket: WebSocket):
 
                 await send_json({"type": "status", "state": "listening"})
 
+            elif msg_type == "flush":
+                speaker = message.get("speaker", "rep")
+                await send_json({"type": "status", "state": "processing"})
+
+                # Flush STT buffer
+                segments = await stt_engine.flush(language=language)
+
+                if segments:
+                    for segment in segments:
+                        transcript_text = segment.text
+
+                        # Send transcript to client
+                        await send_json({
+                            "type": "transcript",
+                            "text": transcript_text,
+                            "timestamp": segment.timestamp,
+                            "language": segment.language,
+                            "speaker": speaker,
+                        })
+
+                        # Cancel any pending coaching task
+                        if coaching_task and not coaching_task.done():
+                            coaching_task.cancel()
+
+                        # Stream the coaching suggestion synchronously (wait for it to complete)
+                        await _stream_coaching(ai_coach, send_json, transcript_text, speaker=speaker, language=language)
+
+                # Send a signal that flushing is completely done!
+                await send_json({"type": "flush_done"})
+                await send_json({"type": "status", "state": "listening"})
+
     except WebSocketDisconnect:
         logger.info("🔌 Coaching WebSocket disconnected")
     except Exception as e:
