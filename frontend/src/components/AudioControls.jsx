@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 
 /**
- * AudioControls — Mic button, language selector, connection status, and audio level meter.
+ * AudioControls — Redesigned controls featuring a premium mic controller, 
+ * language toggle pills, dynamic visualizer, and action buttons.
  */
 export default function AudioControls({
   isRecording,
@@ -14,24 +15,25 @@ export default function AudioControls({
   onLanguageChange,
   onReset,
 }) {
-  const bars = 12;
+  const bars = 14;
+  const isActive = isRecording || isDemo;
 
   return (
-    <div className="flex items-center gap-6">
+    <div className="flex items-center gap-5">
       {/* Mic Button */}
       <button
         id="mic-toggle-btn"
         onClick={onToggleRecording}
         disabled={isDemo}
-        className={`mic-button ${isRecording ? 'mic-button--active' : ''} ${isDemo ? 'opacity-50 cursor-not-allowed' : ''}`}
-        title={isRecording ? 'Stop Recording' : 'Start Recording'}
+        className={`mic-button ${isRecording ? 'mic-button--active' : ''} ${isDemo ? 'opacity-40 cursor-not-allowed' : ''}`}
+        title={isRecording ? 'Stop Session' : 'Start Mic Stream'}
       >
         {isRecording ? (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="6" y="6" width="12" height="12" rx="2" />
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.2)]">
+            <rect x="5" y="5" width="14" height="14" rx="3" />
           </svg>
         ) : (
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
             <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
             <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
             <line x1="12" y1="19" x2="12" y2="22" />
@@ -39,84 +41,106 @@ export default function AudioControls({
         )}
       </button>
 
-      {/* Audio Level Meter */}
-      <div className="audio-meter">
-        {Array.from({ length: bars }, (_, i) => {
-          const h = isRecording
-            ? Math.max(3, Math.min(24, audioLevel * 200 * Math.sin((i / bars) * Math.PI) + Math.random() * 4))
-            : 3;
-          return (
-            <div
-              key={i}
-              className="audio-meter__bar"
-              style={{
-                height: `${h}px`,
-                opacity: isRecording ? 0.5 + audioLevel * 2 : 0.2,
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Connection Status */}
-      <div className="flex items-center gap-2">
-        <div className={`status-dot ${
-          connectionState === 'connected' ? 'status-dot--connected' :
-          connectionState === 'processing' ? 'status-dot--processing' :
-          'status-dot--disconnected'
-        }`} />
-        <span className="text-xs text-[--color-text-muted] uppercase tracking-wider font-medium">
-          {connectionState === 'connected' ? 'Connected' :
-           connectionState === 'processing' ? 'Processing' :
-           connectionState === 'error' ? 'Error' : 'Disconnected'}
+      {/* Audio Level Spectrum Visualizer */}
+      <div className="flex flex-col gap-1 items-center">
+        <div className="audio-meter">
+          {Array.from({ length: bars }, (_, i) => {
+            // Calculate a wave shape that peaks in the middle and bounces dynamically when active
+            const midDist = Math.abs(i - bars / 2) / (bars / 2);
+            const peakFactor = Math.max(0.1, 1 - midDist);
+            const h = isActive
+              ? Math.max(4, Math.min(28, audioLevel * 180 * peakFactor + Math.random() * 5))
+              : 4;
+            return (
+              <div
+                key={i}
+                className="audio-meter__bar"
+                style={{
+                  height: `${h}px`,
+                  opacity: isActive ? 0.4 + (audioLevel * 1.5) : 0.15,
+                }}
+              />
+            );
+          })}
+        </div>
+        <span className="text-[8px] text-[--color-text-muted] uppercase tracking-widest font-extrabold">
+          {isActive ? 'Live Stream' : 'Idle'}
         </span>
       </div>
 
       {/* Separator */}
-      <div className="w-px h-8 bg-[--color-border]" />
+      <div className="w-px h-8 bg-white/5" />
 
-      {/* Language Selector */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="language-select" className="text-xs text-[--color-text-muted] uppercase tracking-wider">
-          Lang
-        </label>
-        <select
-          id="language-select"
-          value={language}
-          onChange={(e) => onLanguageChange(e.target.value)}
-          className="bg-[--color-bg-glass] border border-[--color-border] rounded-lg px-3 py-1.5 text-sm text-[--color-text-primary] outline-none focus:border-[--color-accent-blue] transition-colors cursor-pointer"
-        >
-          <option value="en">English</option>
-          <option value="he">עברית (Hebrew)</option>
-          <option value="auto">Auto-detect</option>
-        </select>
+      {/* Connection Status Pill */}
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.01] border border-[--color-border]">
+        <div className={`status-dot ${
+          connectionState === 'connected' ? 'status-dot--connected' :
+          connectionState === 'processing' ? 'status-dot--processing' :
+          connectionState === 'error' ? 'status-dot--error' :
+          'status-dot--disconnected'
+        }`} />
+        <span className="text-[10px] text-[--color-text-secondary] uppercase tracking-wider font-bold">
+          {connectionState === 'connected' ? 'Connected' :
+           connectionState === 'processing' ? 'Processing' :
+           connectionState === 'error' ? 'Error' : 'Offline'}
+        </span>
       </div>
 
       {/* Separator */}
-      <div className="w-px h-8 bg-[--color-border]" />
+      <div className="w-px h-8 bg-white/5" />
+
+      {/* Language Switcher (Modern Button Selector) */}
+      <div className="flex items-center gap-2">
+        <div className="lang-pill-container">
+          <button
+            onClick={() => onLanguageChange('en')}
+            className={`lang-pill ${language === 'en' ? 'lang-pill--active' : ''}`}
+            title="English"
+          >
+            EN
+          </button>
+          <button
+            onClick={() => onLanguageChange('he')}
+            className={`lang-pill ${language === 'he' ? 'lang-pill--active' : ''}`}
+            title="עברית (Hebrew)"
+          >
+            HE
+          </button>
+          <button
+            onClick={() => onLanguageChange('auto')}
+            className={`lang-pill ${language === 'auto' ? 'lang-pill--active' : ''}`}
+            title="Auto-detect Language"
+          >
+            AUTO
+          </button>
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="w-px h-8 bg-white/5" />
 
       {/* Demo Mode Toggle */}
       <button
         id="demo-toggle-btn"
         onClick={onToggleDemo}
         disabled={isRecording}
-        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+        className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 relative overflow-hidden flex items-center gap-1.5 ${
           isDemo
-            ? 'bg-[--color-accent-violet] text-white shadow-lg shadow-[--color-accent-violet-glow]'
-            : 'bg-[--color-bg-glass] border border-[--color-border] text-[--color-text-secondary] hover:text-[--color-text-primary] hover:border-[--color-border-bright]'
-        } ${isRecording ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            ? 'bg-gradient-to-r from-[--color-accent-violet] to-indigo-600 text-white shadow-lg shadow-[rgba(139,92,246,0.3)] border border-transparent'
+            : 'bg-white/[0.02] border border-[--color-border] text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-white/[0.05] hover:border-[--color-border-bright]'
+        } ${isRecording ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-[1.03]'}`}
       >
-        {isDemo ? '⏹ Stop Demo' : '▶ Demo Mode'}
+        <span>{isDemo ? '⏹ Stop Demo' : '▶ Play Demo'}</span>
       </button>
 
       {/* Reset Button */}
       <button
         id="reset-btn"
         onClick={onReset}
-        className="px-3 py-2 rounded-lg text-sm text-[--color-text-muted] bg-[--color-bg-glass] border border-[--color-border] hover:text-[--color-accent-rose] hover:border-[--color-accent-rose] transition-all cursor-pointer"
-        title="Reset Session"
+        className="p-2 px-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-[--color-text-muted] bg-white/[0.02] border border-[--color-border] hover:text-[--color-accent-rose] hover:border-[--color-accent-rose] hover:bg-[rgba(244,63,94,0.05)] transition-all duration-300 cursor-pointer hover:scale-[1.03]"
+        title="Reset Current Session"
       >
-        ↻ Reset
+        Reset
       </button>
     </div>
   );

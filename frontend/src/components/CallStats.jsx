@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
 
 /**
- * CallStats — Live call metrics displayed as stat cards.
+ * CallStats — Displays key session metrics in high-fidelity cards.
  */
-export default function CallStats({ callStartTime, isActive, transcriptCount, suggestionCount, objectionsDetected }) {
+export default function CallStats({ 
+  callStartTime, 
+  isActive, 
+  transcriptCount, 
+  suggestionCount, 
+  objectionsDetected 
+}) {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -24,21 +30,74 @@ export default function CallStats({ callStartTime, isActive, transcriptCount, su
   };
 
   const stats = [
-    { label: 'Duration', value: formatDuration(elapsed), icon: '⏱', color: 'text-[--color-accent-blue]' },
-    { label: 'Transcripts', value: transcriptCount, icon: '📝', color: 'text-[--color-accent-emerald]' },
-    { label: 'AI Tips', value: suggestionCount, icon: '🤖', color: 'text-[--color-accent-violet]' },
-    { label: 'Objections', value: objectionsDetected, icon: '🔴', color: 'text-[--color-accent-rose]' },
+    { 
+      label: 'Call Duration', 
+      value: formatDuration(elapsed), 
+      icon: '⏱️', 
+      color: 'text-[--color-accent-blue]',
+      bgColor: 'rgba(56,189,248,0.06)',
+      borderColor: 'rgba(56,189,248,0.12)'
+    },
+    { 
+      label: 'Transcripts', 
+      value: transcriptCount, 
+      icon: '💬', 
+      color: 'text-[--color-accent-emerald]',
+      bgColor: 'rgba(16,185,129,0.06)',
+      borderColor: 'rgba(16,185,129,0.12)'
+    },
+    { 
+      label: 'AI Coach Tips', 
+      value: suggestionCount, 
+      icon: '🤖', 
+      color: 'text-[--color-accent-violet]',
+      bgColor: 'rgba(167,139,250,0.06)',
+      borderColor: 'rgba(167,139,250,0.12)'
+    },
+    { 
+      label: 'Objections Blocked', 
+      value: objectionsDetected, 
+      icon: '⚠️', 
+      color: 'text-[--color-accent-rose]',
+      bgColor: 'rgba(244,63,94,0.06)',
+      borderColor: 'rgba(244,63,94,0.12)'
+    },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-4 gap-4">
       {stats.map((stat, i) => (
-        <div key={i} className="glass-card px-4 py-3 flex items-center gap-3 animate-slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
-          <span className="text-xl">{stat.icon}</span>
-          <div>
-            <p className={`text-lg font-bold ${stat.color} font-mono`}>{stat.value}</p>
-            <p className="text-[10px] text-[--color-text-muted] uppercase tracking-wider">{stat.label}</p>
+        <div 
+          key={i} 
+          className="glass-card glass-card-hoverable px-5 py-4.5 flex items-center gap-4 animate-slide-up" 
+          style={{ animationDelay: `${i * 0.08}s` }}
+        >
+          {/* Glowing Icon Wrapper */}
+          <div 
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shadow-inner border"
+            style={{ 
+              backgroundColor: stat.bgColor, 
+              borderColor: stat.borderColor,
+              boxShadow: `0 0 15px ${stat.bgColor}`
+            }}
+          >
+            <span className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">{stat.icon}</span>
           </div>
+
+          {/* Metric Details */}
+          <div>
+            <p className={`text-xl font-black ${stat.color} font-mono tracking-tight`}>
+              {stat.value}
+            </p>
+            <p className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold mt-0.5">
+              {stat.label}
+            </p>
+          </div>
+
+          {/* Active Breath Indicator for Call Duration */}
+          {i === 0 && isActive && (
+            <div className="ml-auto w-2 h-2 rounded-full bg-[--color-accent-blue] animate-ping" />
+          )}
         </div>
       ))}
     </div>

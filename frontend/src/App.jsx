@@ -275,21 +275,24 @@ export default function App() {
   const isActive = isRecording || isDemo;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="h-screen w-screen flex flex-col relative z-0 overflow-hidden">
+
       {/* ===== Top Bar ===== */}
-      <header className="glass-card rounded-none border-x-0 border-t-0 px-6 py-4">
+      <header className="glass-card rounded-none border-x-0 border-t-0 px-6 py-4 bg-[rgba(8,12,28,0.5)] backdrop-blur-xl">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[--color-accent-blue] to-[--color-accent-violet] flex items-center justify-center shadow-lg shadow-[--color-accent-blue-glow]">
-              <span className="text-white text-lg font-bold">S</span>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[--color-accent-blue] to-[--color-accent-violet] flex items-center justify-center shadow-lg shadow-[rgba(99,102,241,0.25)] relative overflow-hidden group">
+              <span className="text-white text-lg font-black tracking-wider relative z-10">S</span>
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-[--color-text-primary] tracking-tight">
-                SalesCoach <span className="text-[--color-accent-blue]">AI</span>
+              <h1 className="text-lg font-extrabold text-[--color-text-primary] tracking-tight flex items-center gap-1.5">
+                <span>SalesCoach</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">AI</span>
               </h1>
-              <p className="text-[10px] text-[--color-text-muted] uppercase tracking-widest">
-                Real-Time Sales Enablement
+              <p className="text-[9px] text-[--color-text-muted] uppercase tracking-widest font-semibold">
+                Real-Time Enablement Suite
               </p>
             </div>
           </div>
@@ -310,39 +313,39 @@ export default function App() {
 
         {/* Demo TTS indicator */}
         {isDemo && (
-          <div className="flex items-center gap-3 mt-3 px-2">
+          <div className="flex items-center gap-3 mt-3.5 px-3 py-2 bg-[rgba(255,255,255,0.01)] border border-[--color-border] rounded-xl animate-fade-in max-w-fit">
             <div className="flex items-center gap-2">
-              <span className="text-xs">🔊</span>
-              <span className="text-[10px] uppercase tracking-wider text-[--color-text-muted] font-medium">
-                TTS Demo
+              <span className="text-xs animate-bounce-subtle">🔊</span>
+              <span className="text-[9px] uppercase tracking-wider text-[--color-text-muted] font-bold">
+                TTS Simulation Active
               </span>
             </div>
             {demoSpeaker && (
-              <div className="flex items-center gap-2 animate-fade-in">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${
+              <div className="flex items-center gap-2 animate-fade-in border-l border-[--color-border] pl-3">
+                <div className={`w-2 h-2 rounded-full animate-ping ${
                   demoSpeaker === 'rep'
                     ? 'bg-[--color-accent-blue]'
                     : 'bg-[--color-accent-emerald]'
                 }`} />
-                <span className={`text-xs font-semibold ${
+                <span className={`text-xs font-semibold tracking-wide ${
                   demoSpeaker === 'rep'
                     ? 'text-[--color-accent-blue]'
                     : 'text-[--color-accent-emerald]'
                 }`}>
-                  {demoSpeaker === 'rep' ? 'Sales Rep speaking...' : 'Prospect speaking...'}
+                  {demoSpeaker === 'rep' ? 'Sales Representative Speaking' : 'Prospect Speaking'}
                 </span>
               </div>
             )}
             {demoProgress && (
-              <div className="ml-auto flex items-center gap-2">
-                <div className="w-24 h-1.5 bg-[--color-bg-secondary] rounded-full overflow-hidden">
+              <div className="flex items-center gap-3 border-l border-[--color-border] pl-3 ml-2">
+                <div className="w-20 h-1 bg-[--color-bg-secondary] rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] rounded-full transition-all duration-500"
                     style={{ width: `${(demoProgress.current / demoProgress.total) * 100}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-[--color-text-muted] font-mono">
-                  {demoProgress.current}/{demoProgress.total}
+                <span className="text-[9px] text-[--color-text-muted] font-mono font-bold">
+                  {demoProgress.current}/{demoProgress.total} phrases
                 </span>
               </div>
             )}
@@ -351,7 +354,7 @@ export default function App() {
       </header>
 
       {/* ===== Stats Bar ===== */}
-      <div className="px-6 py-3">
+      <div className="px-6 py-4">
         <CallStats
           callStartTime={callStartTime}
           isActive={isActive}
@@ -362,9 +365,9 @@ export default function App() {
       </div>
 
       {/* ===== Main Content: 3-Panel Layout ===== */}
-      <main className="flex-1 px-6 pb-6 grid grid-cols-12 gap-4 min-h-0">
+      <main className="flex-grow px-6 pb-6 grid grid-cols-12 gap-4 min-h-0 overflow-hidden">
         {/* Left: Live Transcript */}
-        <div className="col-span-4 min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+        <div className="col-span-4 h-full flex flex-col min-h-0">
           <LiveTranscript
             segments={transcriptSegments}
             language={language}
@@ -372,7 +375,7 @@ export default function App() {
         </div>
 
         {/* Center: AI Coaching */}
-        <div className="col-span-5 min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+        <div className="col-span-5 h-full flex flex-col min-h-0">
           <CoachingPanel
             suggestions={coachingSuggestions}
             streamingText={streamingText}
@@ -381,7 +384,7 @@ export default function App() {
         </div>
 
         {/* Right: Playbook */}
-        <div className="col-span-3 min-h-0" style={{ height: 'calc(100vh - 220px)' }}>
+        <div className="col-span-3 h-full flex flex-col min-h-0">
           <PlaybookSidebar />
         </div>
       </main>
