@@ -114,10 +114,13 @@ export default function App() {
             retrieved_docs: activeRetrievedDocsRef.current
           };
           setCoachingSuggestions(prev => [...prev, newSuggestion]); // Append suggestions
-          if (data.data.script) {
-            latestRepScriptRef.current = data.data.script;
+          
+          // Fall back to suggestion description if no script is present to ensure playability
+          const repText = data.data.script || data.data.suggestion;
+          if (repText) {
+            latestRepScriptRef.current = repText;
             if (demoRef.current) {
-              demoRef.current.setDynamicRepScript(data.data.script);
+              demoRef.current.setDynamicRepScript(repText);
             }
           }
           if (data.data.type === 'objection') {
