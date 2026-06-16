@@ -83,21 +83,6 @@ export default function AudioControls({
       {/* Separator */}
       <div className="w-px h-8 bg-white/5" />
 
-      {/* Connection Status Pill */}
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.01] border border-[--color-border]">
-        <div className={`status-dot ${
-          connectionState === 'connected' ? 'status-dot--connected' :
-          connectionState === 'processing' ? 'status-dot--processing' :
-          connectionState === 'error' ? 'status-dot--error' :
-          'status-dot--disconnected'
-        }`} />
-        <span className="text-[10px] text-[--color-text-secondary] uppercase tracking-wider font-bold">
-          {connectionState === 'connected' ? t('connected', language) :
-           connectionState === 'processing' ? t('processing', language) :
-           connectionState === 'error' ? t('error', language) : t('offline', language)}
-        </span>
-      </div>
-
       {/* Separator */}
       <div className="w-px h-8 bg-white/5" />
 

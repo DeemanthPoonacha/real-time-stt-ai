@@ -18,7 +18,7 @@ interface Segment {
 }
 
 const API_BASE = `http://${window.location.hostname}:8000`;
-const MAX_CONV_LIMIT = 10;
+const MAX_CONV_LIMIT = 15;
 
 export class DemoPlayer {
   private onTranscript?: (segment: { text: string; speaker: string; timestamp: number }) => void;
@@ -189,24 +189,59 @@ export class DemoPlayer {
     if (this.isCancelled) return;
 
     // End call if we reached the turn limit (MAX_CONV_LIMIT turns total)
-    if (this.dynamicTurnCount > MAX_CONV_LIMIT && !this.isCancelled) {
-      console.log("🏁 demoPlayer: Reached dynamic turn limit. Completing demo.");
+    const isWrapUp = this.dynamicTurnCount >= MAX_CONV_LIMIT;
 
-      // Let's speak a concluding line to wrap up cleanly
-      const wrapupText = this.language === 'he'
-        ? "נהדר שרה, אשלח לך את הסיכום והתמחור מייד. תודה רבה!"
-        : "Great Sarah, I will send you the cost summary right away. Thank you!";
+    if (isWrapUp) {
+      console.log("🏁 demoPlayer: Reached dynamic turn limit. Offering final wrap-up script.");
 
+      const wrapupScript = this.language === 'he'
+        ? "מצוין שרה, אשלח לך את כל החומרים וההשוואה עוד היום. תודה רבה והמשך יום נהדר!"
+        : "Excellent Sarah, I'll send over all the materials and the comparison table later today. Thanks for your time and have a great day!";
+
+      this.onCoachingSuggestion?.({
+        type: 'closing',
+        title: this.language === 'he' ? 'סיכום וסיום השיחה' : 'Wrap Up & End Call',
+        suggestion: this.language === 'he'
+          ? 'השיחה הגיעה לסיומה. הודה ללקוח וסכם את הצעדים הבאים.'
+          : 'The conversation is wrapping up. Thank the customer and summarize the next steps.',
+        script: wrapupScript,
+        priority: 'high'
+      });
+
+      // Wait for user to trigger rep response
+      console.log("⏳ demoPlayer: Pausing. Awaiting user's manual trigger for the final call wrap-up script...");
+      const scriptToSpeak = await this.waitForRepTrigger();
+
+      if (this.isCancelled) return;
+
+      // Show representative transcript in UI
       this.onTranscript?.({
-        text: wrapupText,
+        text: scriptToSpeak,
         speaker: 'rep',
         timestamp: Date.now() / 1000,
       });
 
+      // Report final progress
+      this.onProgress?.({
+        current: this.dynamicTurnCount,
+        total: MAX_CONV_LIMIT,
+        speaker: 'rep',
+      });
+      this.dynamicTurnCount++;
+
+      // Speak representative script
       this.onSpeakingChange?.('rep');
-      await this._speak(wrapupText, 'rep');
+      await this._speak(scriptToSpeak, 'rep');
       this.onSpeakingChange?.(null);
 
+      // Send rep response to backend to keep history in sync, but do not wait for another prospect turn
+      this.wsManager?.send({
+        type: 'demo_text',
+        text: scriptToSpeak,
+        speaker: 'rep',
+      });
+
+      // Complete the demo player
       this.onComplete?.();
       return;
     }

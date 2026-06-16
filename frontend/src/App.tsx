@@ -86,10 +86,8 @@ export default function App() {
         if (currentSpeaker === 'rep') {
           awaitingNewProspectTurnRef.current = true;
         } else if (currentSpeaker === 'prospect') {
-          // Prospect starts speaking: clear suggestions if rep spoke since last time
+          // Prospect starts speaking: reset streaming state but retain history
           if (awaitingNewProspectTurnRef.current) {
-            setCoachingSuggestions([]);
-            setActiveRetrievedDocs([]);
             setStreamingText('');
             setIsStreaming(false);
             awaitingNewProspectTurnRef.current = false;
@@ -184,7 +182,6 @@ export default function App() {
       demoRef.current.triggerRepresentativeResponse(script);
     }
     awaitingNewProspectTurnRef.current = true;
-    setActiveRetrievedDocs([]);
   }, []);
 
   // --- Toggle Recording ---
@@ -275,8 +272,6 @@ export default function App() {
         onSpeakingChange: (speaker) => {
           setDemoSpeaker(speaker);
           if (speaker === 'prospect' && awaitingNewProspectTurnRef.current) {
-            setCoachingSuggestions([]);
-            setActiveRetrievedDocs([]);
             setStreamingText('');
             setIsStreaming(false);
             awaitingNewProspectTurnRef.current = false;
@@ -401,6 +396,22 @@ export default function App() {
               <h1 className="text-lg font-extrabold text-[--color-text-primary] tracking-tight flex items-center gap-1.5">
                 <span>SalesCoach</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">AI</span>
+
+                {/* Connection Status Pill */}
+                <div className="flex items-center gap-2  rounded-full bg-white/[0.01]">
+                  <div className={`status-dot ${
+                    connectionState === 'connected' ? 'status-dot--connected' :
+                    connectionState === 'processing' ? 'status-dot--processing' :
+                    connectionState === 'error' ? 'status-dot--error' :
+                    'status-dot--disconnected'
+                  }`} />
+                  {/* <span className="text-[10px] text-[--color-text-secondary] uppercase tracking-wider font-bold">
+                    {connectionState === 'connected' ? t('connected', language) :
+                    connectionState === 'processing' ? t('processing', language) :
+                    connectionState === 'error' ? t('error', language) : t('offline', language)}
+                  </span> */}
+                </div>
+
               </h1>
               <p className="text-[9px] text-[--color-text-muted] uppercase tracking-widest font-semibold">
                 {t('logoSubtitle', language)}
@@ -477,7 +488,7 @@ export default function App() {
       {/* ===== Main Content: 3-Panel Layout ===== */}
       <main className="flex-grow px-6 pb-6 grid grid-cols-12 gap-4 min-h-0 overflow-hidden">
         {/* Left: Live Transcript */}
-        <div className="col-span-4 h-full flex flex-col min-h-0">
+        <div className="col-span-3 h-full flex flex-col min-h-0">
           <LiveTranscript
             segments={transcriptSegments}
             language={language}
@@ -485,7 +496,7 @@ export default function App() {
         </div>
 
         {/* Center: AI Coaching */}
-        <div className="col-span-5 h-full flex flex-col min-h-0">
+        <div className="col-span-6 h-full flex flex-col min-h-0">
           <CoachingPanel
             suggestions={coachingSuggestions}
             streamingText={streamingText}

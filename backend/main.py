@@ -389,6 +389,14 @@ async def coaching_websocket(websocket: WebSocket):
                             lang_name = "Hebrew" if language == "he" else "English"
                             system_prompt = PROSPECT_SYSTEM_PROMPT.format(language_name=lang_name)
                             
+                            # Count representative turns to trigger natural closing behavior
+                            rep_turns = sum(1 for entry in ai_coach.conversation_history if entry.get("speaker") == "rep")
+                            if rep_turns >= 4:
+                                if language == "he":
+                                    system_prompt += "\n\n## הנחיית סיום\nזוהי הפנייה האחרונה של השיחה. הסכימי לצעדים הבאים שהוצעו על ידי הנציג (כגון פגישה או פיילוט), סיימי את השיחה בנימוס ואמרי שלום חם."
+                                else:
+                                    system_prompt += "\n\n## CLOSING RULE\nThis is the final turn of the conversation. Agree to the representative's proposed next steps (like a call or trial), politely wind down the call, and say a warm goodbye."
+                            
                             messages = [{"role": "system", "content": system_prompt}]
                             
                             # Append recent context
