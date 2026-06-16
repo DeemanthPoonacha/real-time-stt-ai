@@ -194,7 +194,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         )}
 
         {/* Suggestion Text */}
-        <p className="text-xs text-[--color-text-secondary] leading-relaxed font-semibold">
+        <p className="text-sm text-[--color-text-secondary] leading-relaxed font-semibold">
           {suggestion.suggestion}
         </p>
 
@@ -268,7 +268,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
 
         {/* Title */}
         {suggestion.title && (
-          <h4 className="text-xs font-bold text-[--color-text-secondary] mb-1 tracking-tight">
+          <h4 className="text-sm font-bold text-[--color-text-secondary] mb-1 tracking-tight">
             {suggestion.title}
           </h4>
         )}
@@ -313,7 +313,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                   )}
                 </div>
               </div>
-              <p className="text-xs text-[--color-text-secondary] italic leading-relaxed font-mono pl-1.5 border-l border-white/5 mb-0.5">
+              <p className="text-md text-[--color-text-secondary] italic leading-relaxed font-mono pl-1.5 border-l border-white/5 mb-0.5">
                 "{suggestion.script}"
               </p>
             </div>

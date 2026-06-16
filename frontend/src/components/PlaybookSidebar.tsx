@@ -193,10 +193,13 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
 
             for (const line of lines) {
               const lower = line.toLowerCase();
+              const colonIdx = line.indexOf(':');
+              const value = colonIdx !== -1 ? line.substring(colonIdx + 1).trim() : '';
+
               if (lower.startsWith('category:') || lower.startsWith('objection:') || lower.startsWith('headline:') || lower.startsWith('name:') || lower.startsWith('scenario:')) {
-                category = line.split(':')[1]?.trim() || '';
+                category = value;
               } else if (lower.startsWith('response:') || lower.startsWith('primary_script:') || lower.startsWith('response_strategy:') || lower.startsWith('detail:') || lower.startsWith('script:') || lower.startsWith('talk track:') || lower.startsWith('talk_track:')) {
-                responseText = line.split(':')[1]?.trim() || '';
+                responseText = value;
               }
             }
             if (category) label = category;
@@ -233,10 +236,13 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
         
         for (const line of lines) {
           const lower = line.toLowerCase();
+          const colonIdx = line.indexOf(':');
+          const value = colonIdx !== -1 ? line.substring(colonIdx + 1).trim() : '';
+
           if (lower.startsWith('category:') || lower.startsWith('objection:') || lower.startsWith('headline:') || lower.startsWith('name:') || lower.startsWith('scenario:')) {
-            category = line.split(':')[1]?.trim() || '';
+            category = value;
           } else if (lower.startsWith('response:') || lower.startsWith('primary_script:') || lower.startsWith('response_strategy:') || lower.startsWith('detail:') || lower.startsWith('script:') || lower.startsWith('talk track:') || lower.startsWith('talk_track:')) {
-            responseText = line.split(':')[1]?.trim() || '';
+            responseText = value;
           }
         }
         if (category) label = category;
@@ -353,9 +359,9 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                 <div className="px-3.5 py-3 space-y-2.5 animate-slide-up border-t border-[rgba(255,255,255,0.02)]">
                   {section.key === 'pricing' ? (
                     section.items.map((item, i) => {
-                      const parts = item.label.split(':');
-                      const name = parts[0]?.trim() || '';
-                      const price = parts[1]?.trim() || '';
+                      const colonIdx = item.label.indexOf(':');
+                      const name = colonIdx !== -1 ? item.label.substring(0, colonIdx).trim() : item.label;
+                      const price = colonIdx !== -1 ? item.label.substring(colonIdx + 1).trim() : '';
                       const uniqueKey = `${section.key}-${i}`;
                       const isMatched = isMatchedItem(section.key, item.label, item.detail);
 
@@ -434,7 +440,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-[--color-text-secondary] leading-relaxed line-clamp-3">
+                          <p className="border-l pl-2 text-sm text-[--color-text-secondary] leading-relaxed">
                             {item.detail}
                           </p>
                           <div className="mt-2.5 flex items-center gap-1">
