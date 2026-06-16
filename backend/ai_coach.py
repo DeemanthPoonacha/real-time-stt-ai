@@ -66,8 +66,6 @@ class AICoach:
         else:
             rag_context = "(No specific playbook context found for this conversation segment.)"
 
-        logger.debug(f"Transcript: {transcript}")
-        logger.debug(f"RAG context: {rag_context}")
 
         prompt = (
             SALES_COACH_SYSTEM_PROMPT.replace("{rag_context}", rag_context)
@@ -113,6 +111,22 @@ Example of Hebrew output:
         if len(self.conversation_history) > self.max_history * 2:
             self.conversation_history = self.conversation_history[-self.max_history:]
 
+    def _get_current_turn_transcript(self, speaker: str = "prospect") -> str:
+        """Get the concatenated transcript of the current active speaker's turn."""
+        if not self.conversation_history:
+            return ""
+        
+        turn_segments = []
+        # Go backwards from the end of history
+        for entry in reversed(self.conversation_history):
+            if entry.get("speaker") == speaker:
+                turn_segments.insert(0, entry["text"])
+            else:
+                # Stop as soon as we hit another speaker's turn
+                break
+                
+        return " ".join(turn_segments)
+
     async def get_coaching(self, transcript_text: str, speaker: str = "unknown", language: str = "en", on_rag_retrieved = None) -> AsyncGenerator[str, None]:
         """
         Get streaming coaching suggestions for the given transcript text.
@@ -126,8 +140,15 @@ Example of Hebrew output:
         # Build context
         conversation_context = self._get_conversation_context()
 
+        # Get the full active turn transcript for retrieval
+        retrieval_query = self._get_current_turn_transcript(speaker=speaker)
+        if not retrieval_query:
+            retrieval_query = transcript_text
+
+        logger.debug(f"Transcript (Active Turn Query): {retrieval_query}")
+
         # Search for relevant playbook context based on the transcript
-        rag_results = self.rag_engine.search(conversation_context, top_k=settings.RAG_TOP_K, language=language)
+        rag_results = self.rag_engine.search(retrieval_query, top_k=settings.RAG_TOP_K, language=language)
         self.latest_rag_results = rag_results
 
         if on_rag_retrieved:
@@ -139,6 +160,7 @@ Example of Hebrew output:
             except Exception as e:
                 logger.warning(f"Error in on_rag_retrieved callback: {e}")
 
+        logger.debug(f"RAG context: {rag_results}")
         system_prompt = self._build_system_prompt(conversation_context, rag_results, language=language)
 
         messages = [

@@ -81,7 +81,7 @@ export default function App() {
       case 'transcript':
         // Map transcript to current speaker if in demo mode, prioritizing backend speaker
         const currentSpeaker = data.speaker || (isDemoRef.current ? (demoSpeakerRef.current || 'prospect') : 'unknown');
-        
+
         // If representative starts speaking in live mode, prepare to clear suggestions when next prospect turn starts
         if (currentSpeaker === 'rep') {
           awaitingNewProspectTurnRef.current = true;
@@ -433,16 +433,14 @@ export default function App() {
             </div>
             {demoSpeaker && (
               <div className="flex items-center gap-2 animate-fade-in border-l border-[--color-border] pl-3">
-                <div className={`w-2 h-2 rounded-full animate-ping ${
-                  demoSpeaker === 'rep'
+                <div className={`w-2 h-2 rounded-full animate-ping ${demoSpeaker === 'rep'
                     ? 'bg-[--color-accent-blue]'
                     : 'bg-[--color-accent-emerald]'
-                }`} />
-                <span className={`text-xs font-semibold tracking-wide ${
-                  demoSpeaker === 'rep'
+                  }`} />
+                <span className={`text-xs font-semibold tracking-wide ${demoSpeaker === 'rep'
                     ? 'text-[--color-accent-blue]'
                     : 'text-[--color-accent-emerald]'
-                }`}>
+                  }`}>
                   {demoSpeaker === 'rep' ? t('repSpeaking', language) : t('prospectSpeaking', language)}
                 </span>
               </div>
@@ -494,13 +492,12 @@ export default function App() {
             isStreaming={isStreaming}
             language={language}
             onSpeakScript={isDemo ? handleSpeakSuggestedScript : undefined}
-            activeRetrievedDocs={activeRetrievedDocs}
           />
         </div>
 
         {/* Right: Playbook */}
         <div className="col-span-3 h-full flex flex-col min-h-0">
-          <PlaybookSidebar language={language} />
+          <PlaybookSidebar language={language} activeRetrievedDocs={activeRetrievedDocs} />
         </div>
       </main>
     </div>

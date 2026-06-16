@@ -52,7 +52,7 @@ interface PlaybookSection {
  */
 export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs = [] }: { language?: string; activeRetrievedDocs?: any[] }) {
   const [playbook, setPlaybook] = useState<PlaybookData | null>(null);
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ pricing: true });
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [copiedItemKey, setCopiedItemKey] = useState<string | null>(null);
@@ -61,42 +61,42 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
     const docSection = (doc.section || '').toLowerCase();
     const docSourceType = (doc.source_type || '').toLowerCase();
     const docSource = (doc.source || '').toLowerCase();
-    
+
     if (docSection.includes('pricing') || docSourceType === 'pricing' || docSource.includes('pricing')) return 'pricing';
     if (docSection.includes('opening_scripts') || docSourceType === 'opening' || docSource.includes('opening')) return 'opening';
     if (docSection.includes('value_propositions') || docSourceType === 'value' || docSource.includes('value')) return 'value';
     if (docSection.includes('closing_techniques') || docSourceType === 'closing' || docSource.includes('closing')) return 'closing';
     if (docSection.includes('competitor_comparisons') || docSourceType === 'competitor' || docSection.includes('competitors') || docSource.includes('competitor')) return 'competitors';
-    
+
     if (docSource.includes('objection') || docSourceType === 'objection') return 'competitors';
-    
+
     return 'value';
   }, []);
 
   const isMatchedItem = useCallback((sectionKey: string, itemLabel: string, itemDetail: string) => {
     if (!activeRetrievedDocs || activeRetrievedDocs.length === 0) return false;
-    
+
     return activeRetrievedDocs.some(doc => {
       const docSection = doc.section || '';
       const docSourceType = doc.source_type || '';
-      
+
       let sectionMatch = false;
       if (sectionKey === 'pricing' && (docSection.includes('pricing') || docSourceType === 'pricing')) sectionMatch = true;
       if (sectionKey === 'opening' && (docSection.includes('opening_scripts') || docSourceType === 'opening')) sectionMatch = true;
       if (sectionKey === 'value' && (docSection.includes('value_propositions') || docSourceType === 'value')) sectionMatch = true;
       if (sectionKey === 'closing' && (docSection.includes('closing_techniques') || docSourceType === 'closing')) sectionMatch = true;
       if (sectionKey === 'competitors' && (docSection.includes('competitor_comparisons') || docSourceType === 'competitor')) sectionMatch = true;
-      
+
       if (!sectionMatch) return false;
-      
+
       const textLower = (doc.text || '').toLowerCase();
       let labelLower = (itemLabel || '').toLowerCase();
       if (sectionKey === 'pricing' && labelLower.includes(':')) {
         labelLower = labelLower.split(':')[0].trim();
       }
-      
+
       const detailLower = (itemDetail || '').toLowerCase();
-      
+
       return textLower.includes(labelLower) || textLower.includes(detailLower) || detailLower.includes(textLower);
     });
   }, [activeRetrievedDocs]);
@@ -106,14 +106,16 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
       .then(r => r.json())
       .then(data => {
         setPlaybook(data);
-        // Expand first section by default for better onboarding UI
-        if (data) setExpandedSection('pricing');
+        if (data) setExpandedSections({ pricing: true });
       })
       .catch(e => console.error('Failed to load playbook:', e));
   }, [language]);
 
-  const toggleSection = (section: string) => {
-    setExpandedSection(expandedSection === section ? null : section);
+  const toggleSection = (sectionKey: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
   };
 
   const copyText = (text: string, itemKey: string) => {
@@ -130,7 +132,11 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
     const matchedDoc = activeRetrievedDocs[0];
     if (matchedDoc) {
       const sectionKey = getSectionKeyForDoc(matchedDoc);
-      setExpandedSection(sectionKey);
+      setExpandedSections(prev => ({
+        ...prev,
+        matches: true,
+        [sectionKey]: true
+      }));
       setActiveCategory(prev => (prev === 'all' || prev === sectionKey) ? prev : 'all');
     }
   }, [activeRetrievedDocs, playbook, getSectionKeyForDoc]);
@@ -162,29 +168,29 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
 
   const dynamicSections = sections.map(section => {
     const currentItems = [...section.items];
-    
+
     if (activeRetrievedDocs && activeRetrievedDocs.length > 0) {
       activeRetrievedDocs.forEach(doc => {
         const targetSectionKey = getSectionKeyForDoc(doc);
         if (targetSectionKey !== section.key) return;
-        
+
         const textLower = (doc.text || '').toLowerCase();
-        
+
         const alreadyExists = currentItems.some(item => {
           const itemLabelLower = (item.label || '').toLowerCase();
           const itemDetailLower = (item.detail || '').toLowerCase();
           return textLower.includes(itemLabelLower) || textLower.includes(itemDetailLower) || itemDetailLower.includes(textLower);
         });
-        
+
         if (!alreadyExists) {
           let label = doc.section || (language === 'he' ? 'מידע מתוכנית המכירות' : 'Playbook Context');
           let detail = doc.text;
-          
+
           if (doc.text.includes('\n')) {
             const lines = doc.text.split('\n');
             let category = '';
             let responseText = '';
-            
+
             for (const line of lines) {
               const lower = line.toLowerCase();
               if (lower.startsWith('category:') || lower.startsWith('objection:') || lower.startsWith('headline:') || lower.startsWith('name:') || lower.startsWith('scenario:')) {
@@ -196,9 +202,9 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
             if (category) label = category;
             if (responseText) detail = responseText;
           }
-          
+
           if (label.length > 50) label = label.substring(0, 47) + '...';
-          
+
           currentItems.push({
             label,
             detail
@@ -206,12 +212,48 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
         }
       });
     }
-    
+
     return {
       ...section,
       items: currentItems
     };
   });
+
+  // Create final sections, prepending RAG matches if present
+  const finalSections = [...dynamicSections];
+  if (activeRetrievedDocs && activeRetrievedDocs.length > 0) {
+    const matchItems = activeRetrievedDocs.map(doc => {
+      let label = doc.section || (language === 'he' ? 'מידע מתוכנית המכירות' : 'Playbook Context');
+      let detail = doc.text;
+      
+      if (doc.text.includes('\n')) {
+        const lines = doc.text.split('\n');
+        let category = '';
+        let responseText = '';
+        
+        for (const line of lines) {
+          const lower = line.toLowerCase();
+          if (lower.startsWith('category:') || lower.startsWith('objection:') || lower.startsWith('headline:') || lower.startsWith('name:') || lower.startsWith('scenario:')) {
+            category = line.split(':')[1]?.trim() || '';
+          } else if (lower.startsWith('response:') || lower.startsWith('primary_script:') || lower.startsWith('response_strategy:') || lower.startsWith('detail:') || lower.startsWith('script:') || lower.startsWith('talk track:') || lower.startsWith('talk_track:')) {
+            responseText = line.split(':')[1]?.trim() || '';
+          }
+        }
+        if (category) label = category;
+        if (responseText) detail = responseText;
+      }
+      
+      if (label.length > 50) label = label.substring(0, 47) + '...';
+      
+      return { label, detail };
+    });
+
+    finalSections.unshift({
+      key: 'matches',
+      title: language === 'he' ? '🎯 התאמות בזמן אמת' : '🎯 Live Matches',
+      items: matchItems
+    });
+  }
 
   // Quick categories
   const categories = [
@@ -224,7 +266,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
   ];
 
   // Apply search query filter and category selection filter
-  const filteredSections = dynamicSections
+  const filteredSections = finalSections
     .filter(s => activeCategory === 'all' || s.key === activeCategory)
     .map(s => {
       const filteredItems = s.items.filter(item =>
@@ -246,7 +288,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
             {t('playbookTitle', language)}
           </h2>
         </div>
- 
+
         {/* Search Field */}
         <div className="relative">
           <input
@@ -258,11 +300,11 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
             className="w-full bg-[--color-bg-secondary] border border-[--color-border] rounded-xl pl-9 pr-3 py-2 text-xs text-[--color-text-primary] placeholder-[--color-text-muted] outline-none focus:border-[--color-accent-blue] focus:ring-1 focus:ring-[--color-accent-blue-glow] transition-all duration-300 bg-opacity-70"
           />
           <svg className="absolute left-3 top-2.5 text-[--color-text-muted] w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
- 
+
         {/* Category Filters */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-thin">
           {categories.map(cat => (
@@ -271,7 +313,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
               onClick={() => {
                 setActiveCategory(cat.key);
                 if (cat.key !== 'all') {
-                  setExpandedSection(cat.key);
+                  setExpandedSections(prev => ({ ...prev, [cat.key]: true }));
                 }
               }}
               className={`filter-chip ${activeCategory === cat.key ? 'filter-chip--active' : ''}`}
@@ -281,7 +323,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
           ))}
         </div>
       </div>
- 
+
       {/* Accordion List Content */}
       <div className="flex-grow overflow-y-auto p-3.5 space-y-2">
         {filteredSections.length === 0 ? (
@@ -294,20 +336,20 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
               <button
                 onClick={() => toggleSection(section.key)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold transition-all duration-300 cursor-pointer ${
-                  expandedSection === section.key 
-                    ? 'text-[--color-text-primary] bg-white/[0.03]' 
+                  expandedSections[section.key]
+                    ? 'text-[--color-text-primary] bg-white/[0.03]'
                     : 'text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-white/[0.02]'
                 }`}
               >
                 <span>{section.title}</span>
                 <span className={`text-[10px] text-[--color-text-muted] transition-transform duration-300 ${
-                  expandedSection === section.key ? 'rotate-180 text-[--color-accent-blue]' : ''
+                  expandedSections[section.key] ? 'rotate-180 text-[--color-accent-blue]' : ''
                 }`}>
                   ▼
                 </span>
               </button>
- 
-              {expandedSection === section.key && (
+
+              {expandedSections[section.key] && (
                 <div className="px-3.5 py-3 space-y-2.5 animate-slide-up border-t border-[rgba(255,255,255,0.02)]">
                   {section.key === 'pricing' ? (
                     section.items.map((item, i) => {
@@ -316,7 +358,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                       const price = parts[1]?.trim() || '';
                       const uniqueKey = `${section.key}-${i}`;
                       const isMatched = isMatchedItem(section.key, item.label, item.detail);
-                      
+
                       return (
                         <div
                           key={i}
@@ -343,7 +385,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                               {price}
                             </span>
                           </div>
-                          
+
                           {/* Features */}
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {item.detail.split(',').map((feat, fi) => (
@@ -352,11 +394,11 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                               </span>
                             ))}
                           </div>
-                          
+
                           <div className="mt-2.5 pt-2 border-t border-white/[0.02] flex items-center gap-1">
                             <span className={`text-[9px] font-extrabold uppercase tracking-wide transition-all duration-200 ${
-                              copiedItemKey === uniqueKey 
-                                ? 'text-[--color-accent-emerald] opacity-100' 
+                              copiedItemKey === uniqueKey
+                                ? 'text-[--color-accent-emerald] opacity-100'
                                 : 'text-[--color-accent-blue] opacity-0 group-hover:opacity-100'
                             }`}>
                               {copiedItemKey === uniqueKey ? t('planCopied', language) : t('copyPlanDetails', language)}
@@ -368,7 +410,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                   ) : (
                     section.items.map((item, i) => {
                       const uniqueKey = `${section.key}-${i}`;
-                      const isMatched = isMatchedItem(section.key, item.label, item.detail);
+                      const isMatched = isMatchedItem(section.key, item.label, item.detail) || section.key === 'matches';
                       return (
                         <div
                           key={i}
@@ -386,17 +428,19 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                             </p>
                             {isMatched && (
                               <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[--color-accent-blue]/20 border border-[--color-accent-blue]/35 text-[--color-text-primary] animate-pulse">
-                                {language === 'he' ? 'התאמה לתוכנית' : 'Playbook Match'}
+                                {section.key === 'matches'
+                                  ? (language === 'he' ? 'התאמה בזמן אמת' : 'Live Match')
+                                  : (language === 'he' ? 'התאמה לתוכנית' : 'Playbook Match')}
                               </span>
-                              )}
+                            )}
                           </div>
                           <p className="text-[11px] text-[--color-text-secondary] leading-relaxed line-clamp-3">
                             {item.detail}
                           </p>
                           <div className="mt-2.5 flex items-center gap-1">
                             <span className={`text-[9px] font-extrabold uppercase tracking-wide transition-all duration-200 ${
-                              copiedItemKey === uniqueKey 
-                                ? 'text-[--color-accent-emerald] opacity-100' 
+                              copiedItemKey === uniqueKey
+                                ? 'text-[--color-accent-emerald] opacity-100'
                                 : 'text-[--color-accent-blue] opacity-0 group-hover:opacity-100'
                             }`}>
                               {copiedItemKey === uniqueKey ? t('scriptCopied', language) : t('clickToCopy', language)}
