@@ -71,18 +71,18 @@ Sales playbooks and objection scripts are often highly structured JSON files. To
   ```
 - **Nested Objects:** The nested keys are traversed recursively, building a structural hierarchy prefix (e.g., `Parent Key > Child Key`) so the semantic relationships are preserved in the text representation.
 
-### 3.3 Custom Chunking Strategy
-To prevent splitting sentences in half and losing semantic coherence, the chunking algorithm (`RAGEngine._chunk_text`) utilizes a boundary-aware sliding window:
-1. **Window Size:** Chunks are sliced at `RAG_CHUNK_SIZE` characters (default: `500`).
-2. **Boundary Detection:** If the chunk boundary falls mid-sentence, the algorithm looks backward up to 50% of the chunk size for sentence-ending punctuation (`. `, `! `, `? `, `\n`). If found, it splits the chunk at the end of the sentence.
-3. **Overlap:** An overlap of `RAG_CHUNK_OVERLAP` characters (default: `50`) is appended to the start of the next chunk to maintain narrative continuity.
+### 3.3 Structure-Aware and Paragraph-Aware Chunking Strategy
+To keep semantic objects cohesive and prevent splitting information mid-sentence or mid-block, the engine employs a hybrid chunking strategy:
+1. **JSON Q&A Block Intactness:** For sales playbooks or objection scripts, individual objects (like an objection category script or a value proposition) are kept completely intact as a single atomic document chunk (if under 1800 characters) rather than being split by characters.
+2. **Paragraph-Aware Splitting:** Markdown and plain-text files are split by double newlines (`\n\n`) into logical paragraphs. These paragraphs are grouped together up to `RAG_CHUNK_SIZE` characters (default: `500`).
+3. **Boundary Fallback:** If an individual paragraph exceeds the chunk size, the engine falls back to a sentence-ending boundary search (breaking at `. `, `! `, `? `, `\n`) within the sliding window, ensuring smooth character-based splits.
+4. **Overlap:** Adjacent text-file chunks overlap by `RAG_CHUNK_OVERLAP` characters (default: `50`) to maintain context boundaries.
 
-### 3.4 Idempotent Ingestions (Deterministic IDs)
-To avoid duplicating the same content if the ingestion script is run multiple times, every chunk is assigned a deterministic ID:
-```python
-doc_id = hashlib.md5(f"{source}:{text}".encode()).hexdigest()
-```
-Using ChromaDB's `collection.upsert()` with these IDs ensures that modifying a file and re-ingesting updates the existing vectors instead of duplicating them.
+### 3.4 Change Data Capture & Delta Ingestion
+To scale efficiently to large playbooks, the ingestion engine tracks files using a manifest (`ingestion_manifest.json`):
+- Saves file paths, last modified timestamps, and MD5 file checksums.
+- During ingestion, it checks the manifest. If a file is unmodified and exists in Chroma, the engine skips processing it.
+- If a file is modified, the engine deletes all previous chunks associated with that file from the Chroma collection (preventing orphans) and re-ingests only the updated content.
 
 ---
 
@@ -94,26 +94,33 @@ Every document chunk inserted into ChromaDB is enriched with metadata to allow f
 | :--- | :--- | :--- | :--- |
 | `source` | `str` | Name of the source file (excluding extension) | `sales_playbook` |
 | `source_type` | `str` | Type of data: `playbook`, `objection`, `knowledge`, or `document` | `objection` |
-| `section` | `str` | JSON section pathway where the chunk was extracted (only for JSON files) | `objections > competitor_dropbox` |
+| `section` | `str` | JSON section pathway where the chunk was extracted | `objections > competitor_dropbox` |
 | `chunk_index` | `int` | Sequential index of the chunk within the file | `2` |
+| `language` | `str` | Language of the document (`en` or `he`) | `en` |
 
 ---
 
-## 5. Query & Retrieval Mechanics
+## 5. Query & Retrieval Mechanics (Hybrid Search & Reranking)
 
-At runtime, the active live transcript segment is sent to `RAGEngine.search()`:
-- **Query Input:** The last several segments of the live conversation.
-- **Top-K Search:** Returns the top $K$ results (controlled by `settings.RAG_TOP_K`, default: `5`).
-- **Filtering:** Supports filtering by `source_type` if the system needs to narrow search to a specific category (e.g., searching only for objection-handling scripts when resistance is detected).
+At runtime, the live transcript is queried using a multi-stage pipeline:
 
-The query returns a list of dictionaries with the structure:
-```python
-{
-    "text": "The chunked text content",
-    "metadata": { ... },
-    "distance": 0.285  # Cosine distance
-}
+```mermaid
+graph TD
+    Query[Live Transcript] --> Clean[1. Clean Filler Words & Punctuation]
+    Clean --> VectorSearch[2. Chroma Dense Vector Query]
+    VectorSearch -->|Get top 30-50 candidates| HybridMerge[3. BM25 Lexical Scorer]
+    HybridMerge -->|Combine Scores via Alpha| HybridSorted[4. Hybrid Ranked Candidates]
+    HybridSorted -->|Top 10 candidates| Reranker[5. Cross-Encoder Neural Rerank]
+    Reranker -->|Final Re-scored Docs| TopK[6. Final Top-K Results]
 ```
+
+1. **Query Pre-processing:** The query string is cleaned by stripping common punctuation and filtering out speech disfluencies and filler words (*uh, um, like, so, basically, you know*, and Hebrew fillers like *אז, כאילו, כזה*).
+2. **Dense Vector Search:** The cleaned query is vectorized and queried against ChromaDB to retrieve a larger candidate pool (e.g. 30–50 candidate chunks).
+3. **Lexical Scoring (BM25):** The engine scores the candidates using a local BM25 scorer fitted on the entire document corpus.
+4. **Hybrid Score Fusion:** Vector cosine similarity and BM25 scores are normalized and combined:
+   $$\text{Hybrid Score} = \alpha \times \text{Normalized Vector Similarity} + (1 - \alpha) \times \text{Normalized BM25 Score}$$
+5. **Neural Reranking:** The top 10 candidates from the hybrid stage are passed to a local Cross-Encoder model (`cross-encoder/ms-marco-TinyBERT-L-2-v2`). The model computes a sequence-pair attention score for each candidate relative to the query.
+6. **Top-K Selection:** Candidates are sorted by the reranker's probability score, and the final top $K$ (default: `5`) are injected into the AI Coach prompt.
 
 ---
 
@@ -138,20 +145,11 @@ Response: Explain the ROI. CloudSync Pro saves an average of 4 hours/week per em
 The system prompt template merges this context into the `{rag_context}` placeholder, instructing the LLM to base its real-time coaching suggestions directly on these reference playbooks.
 
 ### 6.2 Local RAG Fallback (Offline Mode)
-A key resilient feature of this project is the **Local RAG Fallback**. If the remote/local LLM endpoint is offline, unreachable, or errors out, the coach falls back to generating a coaching recommendation directly from ChromaDB:
+If the remote/local LLM endpoint is offline, unreachable, or errors out, the coach falls back to generating a coaching recommendation directly from the search results:
 1. **Query:** Searches the vector database for the top-1 match matching the live transcript.
-2. **Category Extraction:** Parses the retrieved plain text to identify if the matched document represents an `objection` (looks for structural tags like `Category:` or `Response:`) or a generic playbook tip (looks for `Headline:` or `Detail:`).
-3. **Structured JSON Construction:** Formats the extracted fields into the exact structured JSON response expected by the frontend:
-   ```json
-   {
-     "type": "objection",
-     "priority": "high",
-     "title": "Handle Objection: Pricing",
-     "suggestion": "The prospect raised concern about pricing. Reframe using the playbook track.",
-     "script": "Explain the ROI. CloudSync Pro saves an average of 4 hours/week per employee..."
-   }
-   ```
-4. **Simulated Streaming:** To ensure the frontend UI remains responsive and matches the user experience of a streaming LLM, the local fallback streams this JSON text string back in small character chunks (e.g., 6 characters at a time) separated by a short sleep delay (`15ms`).
+2. **Category Extraction:** Parses the retrieved plain text to identify if the matched document represents an `objection` or a generic playbook tip.
+3. **Structured JSON Construction:** Formats the extracted fields into the exact structured JSON response expected by the frontend.
+4. **Simulated Streaming:** Streams this JSON text string back in small character chunks (e.g., 6 characters at a time) separated by a short sleep delay (`15ms`) to maintain a fluid streaming UI experience.
 
 ---
 
@@ -171,4 +169,19 @@ RAG_CHUNK_OVERLAP=50
 
 # Number of relevant search results to retrieve and inject into the prompt
 RAG_TOP_K=5
+
+# Enable/disable hybrid dense-sparse search
+RAG_ENABLE_HYBRID=True
+
+# Weight of vector similarity vs. BM25 (0.0 = pure BM25, 1.0 = pure vector)
+RAG_HYBRID_ALPHA=0.5
+
+# Enable/disable filler word removal from STT queries
+RAG_CLEAN_QUERY=True
+
+# Enable/disable Cross-Encoder neural reranking
+RAG_ENABLE_RERANKER=True
+
+# Model identifier for the Cross-Encoder (TinyBERT is fast and runs on CPU)
+RAG_RERANKER_MODEL=cross-encoder/ms-marco-TinyBERT-L-2-v2
 ```

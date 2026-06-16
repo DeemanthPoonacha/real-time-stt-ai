@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     RAG_CHUNK_SIZE: int = 500  # characters per chunk
     RAG_CHUNK_OVERLAP: int = 50
     RAG_TOP_K: int = 5  # number of relevant chunks to retrieve
+    RAG_ENABLE_HYBRID: bool = True
+    RAG_HYBRID_ALPHA: float = 0.5
+    RAG_CLEAN_QUERY: bool = True
+    RAG_ENABLE_RERANKER: bool = True
+    RAG_RERANKER_MODEL: str = "cross-encoder/ms-marco-TinyBERT-L-2-v2"
 
     # --- Demo Mode ---
     DEMO_MODE: bool = False
