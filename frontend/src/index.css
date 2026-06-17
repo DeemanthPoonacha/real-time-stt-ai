@@ -747,7 +747,6 @@ select:focus-visible,
 }
 
 .filter-chip--active {
-  color: white;
   background: rgba(99, 102, 241, 0.12);
   border-color: rgba(99, 102, 241, 0.3);
 }

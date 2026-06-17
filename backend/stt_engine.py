@@ -276,16 +276,17 @@ class DeepgramStreamSession(BaseSTTStreamSession):
         if lang == "auto":
             lang = None
 
-        model = "nova-2"
-        if lang == "he":
-            model = "nova-3"
+        # model = "nova-2"
+        # if lang == "he":
+        model = "nova-3"
 
         params = {
             "model": model,
             "smart_format": "true",
             "encoding": "linear16",
             "sample_rate": str(settings.AUDIO_SAMPLE_RATE),
-            "channels": str(settings.AUDIO_CHANNELS)
+            "channels": str(settings.AUDIO_CHANNELS),
+            "endpointing": "300"
         }
         if lang:
             params["language"] = lang

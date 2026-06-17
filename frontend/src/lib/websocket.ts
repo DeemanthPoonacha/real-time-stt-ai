@@ -158,8 +158,8 @@ export class AudioCapture {
       this.analyser.fftSize = 256;
       source.connect(this.analyser);
 
-      // ScriptProcessor for raw PCM capture
-      this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+      // ScriptProcessor for raw PCM capture (reduced from 4096 to 1024 for low-latency 64ms chunking)
+      this.processor = this.audioContext.createScriptProcessor(1024, 1, 1);
       source.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
 

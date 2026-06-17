@@ -388,7 +388,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                                  </span>
                                )}
                              </div>
-                            <span className="font-mono text-xs font-bold text-white bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                            <span className="font-mono text-xs font-bold bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
                               {price}
                             </span>
                           </div>
