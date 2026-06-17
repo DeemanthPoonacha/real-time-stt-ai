@@ -46,51 +46,6 @@ rag_engine = RAGEngine()
 stt_engine: STTEngine | None = None
 
 
-async def pre_cache_demo_transcripts():
-    """Pre-cache TTS audio files for static demo transcripts to eliminate startup latency."""
-    import edge_tts
-
-    logger.info("🎙️ Starting background demo transcript pre-caching...")
-    langs_to_cache = ["en", "he"]
-    for lang in langs_to_cache:
-        file_name = "demo_transcript_he.json" if lang == "he" else "demo_transcript.json"
-        demo_path = DATA_DIR / file_name
-        if not demo_path.exists():
-            continue
-        try:
-            with open(demo_path, "r", encoding="utf-8") as f:
-                demo_data = json.load(f)
-            segments = demo_data.get("segments", [])
-            for index, segment in enumerate(segments):
-                text = segment.get("text", "").strip()
-                speaker = segment.get("speaker", "unknown")
-                if not text:
-                    continue
-
-                # Check cache first
-                cache_str = f"{lang}:{speaker}:{text}"
-                cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
-                cache_file = TTS_CACHE_DIR / f"{lang}_{index}_{text[:10].replace(' ', '_')}_{cache_key}.mp3"
-                if cache_file.exists() and cache_file.stat().st_size > 0:
-                    continue
-
-                # Determine voice
-                if lang == "he":
-                    voice = "he-IL-AvriNeural" if speaker == "rep" else "he-IL-HilaNeural"
-                else:
-                    voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
-
-                try:
-                    logger.info(f"Pre-caching static TTS: lang={lang}, speaker={speaker}, text='{text[:20]}...'")
-                    communicate = edge_tts.Communicate(text, voice)
-                    await communicate.save(str(cache_file))
-                except Exception as e:
-                    logger.warning(f"Failed to pre-cache segment for {lang}: {e}")
-        except Exception as e:
-            logger.error(f"Error loading demo transcript for pre-caching ({lang}): {e}")
-
-    logger.info("✅ Background demo transcript pre-caching complete!")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -98,6 +53,16 @@ async def lifespan(app: FastAPI):
     global stt_engine
 
     logger.info("🚀 Starting Real-Time Sales Coaching Backend...")
+
+    # Clean up old TTS cache folder if it exists
+    # tts_cache_dir = DATA_DIR / "tts_cache"
+    # if tts_cache_dir.exists():
+    #     logger.info("🧹 Cleaning up old TTS cache directory...")
+    #     import shutil
+    #     try:
+    #         shutil.rmtree(tts_cache_dir)
+    #     except Exception as e:
+    #         logger.warning(f"Failed to delete old TTS cache: {e}")
 
     # Initialize RAG engine and ingest data
     rag_engine.initialize()
@@ -108,9 +73,6 @@ async def lifespan(app: FastAPI):
     # Initialize STT engine
     stt_engine = STTEngine()
     await stt_engine.initialize()
-
-    # Pre-cache static demo transcripts in background
-    # asyncio.create_task(pre_cache_demo_transcripts())
 
     logger.info("✅ All systems ready!")
     logger.info(f"   STT Provider: {settings.STT_PROVIDER}")
@@ -223,15 +185,11 @@ async def get_demo_transcript(language: str = "en"):
         return json.load(f)
 
 
-TTS_CACHE_DIR = DATA_DIR / "tts_cache" / "dynamic"
-TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-
 @app.get("/api/tts")
 async def get_tts(text: str, lang: str = "he", speaker: str = "rep"):
     """
     Generate TTS using Microsoft Edge TTS for natural, distinguished neural voices.
-    Uses filesystem caching to serve repeat requests instantaneously.
+    Streams the audio response directly to the client without writing to disk.
     """
     import edge_tts
 
@@ -239,36 +197,25 @@ async def get_tts(text: str, lang: str = "he", speaker: str = "rep"):
     if not cleaned_text:
         raise HTTPException(status_code=400, detail="Text cannot be empty")
 
-    # Generate cache key using MD5 hash of the parameters
-    cache_str = f"{lang}:{speaker}:{cleaned_text}"
-    cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
-    cache_file = TTS_CACHE_DIR / f"{cache_key}.mp3"
-
-    # Serve from cache if available
-    if cache_file.exists() and cache_file.stat().st_size > 0:
-        return FileResponse(cache_file, media_type="audio/mpeg")
-
     # Choose voice based on language and speaker
     if lang == "he":
         voice = "he-IL-AvriNeural" if speaker == "rep" else "he-IL-HilaNeural"
     else:  # en or other
         voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
 
-    logger.info(f"Generating TTS: voice={voice}, speaker={speaker}, text='{cleaned_text[:30]}...'")
+    logger.info(f"Generating TTS (Streaming): voice={voice}, speaker={speaker}, text='{cleaned_text[:30]}...'")
 
     try:
         communicate = edge_tts.Communicate(cleaned_text, voice)
-        # Save to cache file
-        await communicate.save(str(cache_file))
-        return FileResponse(cache_file, media_type="audio/mpeg")
+        
+        async def audio_stream_generator():
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    yield chunk["data"]
+
+        return StreamingResponse(audio_stream_generator(), media_type="audio/mpeg")
     except Exception as e:
         logger.error(f"Failed to generate TTS: {e}")
-        # Clean up any partial files
-        if cache_file.exists():
-            try:
-                cache_file.unlink()
-            except Exception:
-                pass
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 
@@ -500,8 +447,12 @@ async def coaching_websocket(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("🔌 Coaching WebSocket disconnected")
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
-        await send_json({"type": "error", "message": str(e)[:200]})
+        err_msg = str(e)
+        if "WebSocket is not connected" in err_msg or "accept" in err_msg:
+            logger.info("🔌 Coaching WebSocket disconnected (RuntimeError)")
+        else:
+            logger.error(f"WebSocket error: {e}")
+            await send_json({"type": "error", "message": str(e)[:200]})
     finally:
         if stt_stream:
             await stt_stream.close()
@@ -709,7 +660,11 @@ async def demo_websocket(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("🎬 Demo WebSocket disconnected")
     except Exception as e:
-        logger.error(f"Demo WebSocket error: {e}")
+        err_msg = str(e)
+        if "WebSocket is not connected" in err_msg or "accept" in err_msg:
+            logger.info("🎬 Demo WebSocket disconnected (RuntimeError)")
+        else:
+            logger.error(f"Demo WebSocket error: {e}")
 
 
 # --- Entry Point ---
