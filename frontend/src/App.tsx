@@ -32,6 +32,9 @@ interface CoachingSuggestion {
 
 export default function App() {
   // --- State ---
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('theme') as 'light' | 'dark') || 'dark';
+  });
   const [connectionState, setConnectionState] = useState<string>('disconnected');
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isDemo, setIsDemo] = useState<boolean>(false);
@@ -74,6 +77,11 @@ export default function App() {
   useEffect(() => {
     activeRetrievedDocsRef.current = activeRetrievedDocs;
   }, [activeRetrievedDocs]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // --- WebSocket Message Handler ---
   const handleMessage = useCallback((data: any) => {
@@ -431,6 +439,8 @@ export default function App() {
             connectionState={connectionState}
             audioLevel={audioLevel}
             language={language}
+            theme={theme}
+            onToggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
             onToggleRecording={handleToggleRecording}
             onToggleDemo={handleToggleDemo}
             onLanguageChange={handleLanguageChange}

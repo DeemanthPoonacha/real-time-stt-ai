@@ -3,6 +3,8 @@ export const translations = {
     // App Header & Layout
     logoSubtitle: "Real-Time Enablement Suite",
     simulationActive: "TTS Simulation Active",
+    switchToDark: "Switch to Dark Theme",
+    switchToLight: "Switch to Light Theme",
     repSpeaking: "Sales Representative Speaking",
     prospectSpeaking: "Prospect Speaking",
     phrases: "phrases",
@@ -88,6 +90,8 @@ export const translations = {
     // App Header & Layout
     logoSubtitle: "מערכת הדרכה בזמן אמת",
     simulationActive: "סימולציית TTS פעילה",
+    switchToDark: "עבור למצב כהה",
+    switchToLight: "עבור למצב בהיר",
     repSpeaking: "נציג המכירות מדבר",
     prospectSpeaking: "לקוח פוטנציאלי מדבר",
     phrases: "משפטים",

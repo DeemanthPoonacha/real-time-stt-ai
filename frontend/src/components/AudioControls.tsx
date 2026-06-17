@@ -7,6 +7,8 @@ interface AudioControlsProps {
   connectionState: string;
   audioLevel: number;
   language: string;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
   onToggleRecording: () => void;
   onToggleDemo: () => void;
   onLanguageChange: (lang: string) => void;
@@ -23,6 +25,8 @@ export default function AudioControls({
   connectionState,
   audioLevel,
   language,
+  theme,
+  onToggleTheme,
   onToggleRecording,
   onToggleDemo,
   onLanguageChange,
@@ -82,6 +86,32 @@ export default function AudioControls({
 
       {/* Separator */}
       <div className="w-px h-8 bg-white/5" />
+
+      {/* Theme Switcher */}
+      <button
+        id="theme-toggle-btn"
+        onClick={onToggleTheme}
+        className="p-2 px-2.5 rounded-xl bg-white/[0.02] border border-[--color-border] text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-white/[0.05] hover:border-[--color-border-bright] transition-all duration-300 cursor-pointer hover:scale-[1.03] flex items-center justify-center"
+        title={theme === 'light' ? t('switchToDark', language) : t('switchToLight', language)}
+      >
+        {theme === 'light' ? (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[--color-accent-violet] animate-bounce-subtle">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+          </svg>
+        ) : (
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[--color-accent-blue] animate-spin-slow">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/>
+            <path d="M12 20v2"/>
+            <path d="m4.93 4.93 1.41 1.41"/>
+            <path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/>
+            <path d="M20 12h2"/>
+            <path d="m6.34 17.66-1.41 1.41"/>
+            <path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+        )}
+      </button>
 
       {/* Separator */}
       <div className="w-px h-8 bg-white/5" />
