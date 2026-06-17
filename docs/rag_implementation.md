@@ -38,13 +38,13 @@ graph TD
 ## 2. Core Components
 
 ### 2.1 The Vector Database: ChromaDB
-The project uses **ChromaDB** as its vector database, managed via `rag_engine.py`.
+The project uses **ChromaDB** as its vector database, managed via [rag_engine.py](../backend/rag_engine.py).
 - **Client type:** `chromadb.PersistentClient` pointing to `backend/chroma_db/`. This ensures the vector index is persisted on disk between server restarts.
 - **Collection name:** Controlled by `settings.RAG_COLLECTION_NAME` (default: `"sales_knowledge"`).
 - **Distance Metric:** Cosine similarity (`"hnsw:space": "cosine"`).
 - **Embedding Model:** ChromaDB's default embedding function, which leverages `all-MiniLM-L6-v2` (a 384-dimensional model from `sentence-transformers`). This runs completely locally and matches queries to documents efficiently.
 
-### 2.2 The Ingestion Pipeline (`ingest.py` & `rag_engine.py`)
+### 2.2 The Ingestion Pipeline ([ingest.py](../backend/ingest.py) & [rag_engine.py](../backend/rag_engine.py))
 Documents are loaded, parsed, chunked, and upserted into the database using a standalone ingestion script:
 ```bash
 python ingest.py          # Ingests all documents in backend/data/
@@ -126,7 +126,7 @@ graph TD
 
 ## 6. Integration with the AI Sales Coach
 
-The RAG results are consumed in two main ways within `ai_coach.py`.
+The RAG results are consumed in two main ways within [ai_coach.py](../backend/ai_coach.py).
 
 ### 6.1 Prompt Injection (Online Mode)
 When the LLM is online, retrieved playbook snippets are formatted into an easily parsed context block and injected into the system prompt:

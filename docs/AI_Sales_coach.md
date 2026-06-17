@@ -12,8 +12,9 @@ Built as a compelling Upwork proposal showcase with production-ready architectur
 graph LR
     A["🎤 Browser Mic"] -->|"WebSocket (base64 PCM)"| B["FastAPI Backend"]
     B -->|"Audio Buffer"| C["faster-whisper STT"]
-    C -->|"Transcript"| D["ChromaDB RAG"]
-    D -->|"Relevant Context"| E["Ollama/OpenAI LLM"]
+    C -->|"Transcript"| D["ChromaDB + BM25 Hybrid RAG"]
+    D -->|"Top-10 Candidates"| DR["Cross-Encoder Reranker"]
+    DR -->|"Reranked Context"| E["Ollama/OpenAI LLM"]
     E -->|"Streaming JSON"| B
     B -->|"WebSocket JSON"| F["React Dashboard"]
 ```
@@ -28,31 +29,36 @@ graph LR
 |:-----|:--------|
 | [config.py](../backend/config.py) | Centralized settings with env overrides. Swap STT/LLM providers via `.env` |
 | [stt_engine.py](../backend/stt_engine.py) | STT abstraction layer — faster-whisper default, pluggable Deepgram/AssemblyAI/Google |
-| [rag_engine.py](../backend/rag_engine.py) | ChromaDB RAG engine — document ingestion, chunking, semantic search |
+| [rag_engine.py](../backend/rag_engine.py) | ChromaDB RAG engine with BM25 hybrid search and Cross-Encoder neural reranker |
 | [ai_coach.py](../backend/ai_coach.py) | AI Coach using OpenAI SDK → works with Ollama, 1-line swap to OpenAI |
 | [main.py](../backend/main.py) | FastAPI app — REST APIs + WebSocket endpoints for coaching & demo |
-| [ingest.py](../backend/ingest.py) | Standalone document ingestion script |
+| [ingest.py](../backend/ingest.py) | Standalone document ingestion script with change data capture |
 
 ### Sample Data
 
 | File | Content |
 |:-----|:--------|
-| [sales_playbook.json](../backend/data/sales_playbook.json) | CloudSync Pro — pricing, opening scripts, value props, closing techniques, competitor comparisons |
-| [objection_scripts.json](../backend/data/objection_scripts.json) | 6 objection categories with trigger phrases, primary/alternative scripts, tactics |
-| [demo_transcript.json](../backend/data/demo_transcript.json) | 20-segment simulated sales call with realistic timing and multiple objections |
+| [sales_playbook.json](../backend/data/sales_playbook.json) | CloudSync Pro — pricing, opening scripts, value props, closing techniques, competitor comparisons (English) |
+| [sales_playbook_he.json](../backend/data/sales_playbook_he.json) | CloudSync Pro — playbook translated and formatted for Hebrew markets |
+| [objection_scripts.json](../backend/data/objection_scripts.json) | 6 objection categories with trigger phrases, scripts, key tactics (English) |
+| [objection_scripts_he.json](../backend/data/objection_scripts_he.json) | Objection scripts in Hebrew with Right-to-Left formatting handling |
+| [demo_transcript.json](../backend/data/demo_transcript.json) | 20-segment simulated sales call with realistic timing and multiple objections (English) |
+| [demo_transcript_he.json](../backend/data/demo_transcript_he.json) | Simulated sales call in Hebrew (RTL, 20 segments) |
 | [prompts.py](../backend/data/prompts.py) | Engineered system prompts with JSON output format and RAG context injection |
 
-### Frontend (React + Vite + Tailwind)
+### Frontend (React + Vite + TypeScript)
 
 | File | Purpose |
 |:-----|:--------|
-| [App.jsx](../frontend/src/App.jsx) | Main layout — 3-panel grid, state management, WebSocket orchestration |
-| [AudioControls.jsx](../frontend/src/components/AudioControls.jsx) | Animated mic button, audio meter, language selector, demo toggle |
-| [LiveTranscript.jsx](../frontend/src/components/LiveTranscript.jsx) | Auto-scrolling transcript with speaker labels and RTL support |
-| [CoachingPanel.jsx](../frontend/src/components/CoachingPanel.jsx) | Color-coded AI coaching cards with streaming text and copy-to-clipboard |
-| [CallStats.jsx](../frontend/src/components/CallStats.jsx) | Live metrics — duration, transcripts, suggestions, objections |
-| [PlaybookSidebar.jsx](../frontend/src/components/PlaybookSidebar.jsx) | Searchable, collapsible playbook reference with click-to-copy |
-| [websocket.js](../frontend/src/lib/websocket.js) | WebSocket manager with auto-reconnect + AudioCapture class |
+| [App.tsx](../frontend/src/App.tsx) | Main layout — 3-panel grid, state management, WebSocket orchestration |
+| [AudioControls.tsx](../frontend/src/components/AudioControls.tsx) | Animated mic button, audio meter, language selector, demo toggle |
+| [LiveTranscript.tsx](../frontend/src/components/LiveTranscript.tsx) | Auto-scrolling transcript with speaker labels and RTL support |
+| [CoachingPanel.tsx](../frontend/src/components/CoachingPanel.tsx) | Color-coded AI coaching cards with streaming text and copy-to-clipboard |
+| [CallStats.tsx](../frontend/src/components/CallStats.tsx) | Live metrics — duration, transcripts, suggestions, objections |
+| [PlaybookSidebar.tsx](../frontend/src/components/PlaybookSidebar.tsx) | Searchable, collapsible playbook reference with click-to-copy |
+| [websocket.ts](../frontend/src/lib/websocket.ts) | WebSocket manager with auto-reconnect + AudioCapture class |
+| [translations.ts](../frontend/src/lib/translations.ts) | Localized string mappings for English and Hebrew UI elements |
+| [demoPlayer.ts](../frontend/src/lib/demoPlayer.ts) | Custom timing player that manages state updates for simulated calls |
 | [index.css](../frontend/src/index.css) | Dark glassmorphism design system with animations and RTL styles |
 
 ---
@@ -63,7 +69,7 @@ graph LR
 
 2. **STT Provider Pattern** — Abstract `BaseSTTProvider` with `FasterWhisperProvider` as default. Deepgram/AssemblyAI/Google stubbed with clear TODO markers.
 
-3. **RAG with ChromaDB** — Handles thousands of documents. Auto-chunks text, generates embeddings via sentence-transformers, and returns the top-K most relevant chunks to inject into the LLM prompt.
+3. **Advanced RAG Pipeline** — Combines ChromaDB dense vector search with local BM25 sparse lexical scoring. Normalizes and fuses both scores ($\alpha=0.5$ default) before running a CPU-friendly neural reranker (`cross-encoder/ms-marco-TinyBERT-L-2-v2`) on the top-10 candidates to ensure ultra-precise context injection with low latency.
 
 4. **Demo Mode** — Separate WebSocket endpoint (`/ws/demo`) plays back a pre-recorded sales call with realistic timing. No mic needed — perfect for Upwork showcasing.
 

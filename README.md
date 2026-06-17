@@ -15,11 +15,11 @@ Browser Mic → WebSocket → FastAPI → faster-whisper (STT) → ChromaDB (RAG
 
 | Component | Technology | Swappable To |
 |:----------|:-----------|:-------------|
-| Frontend | React + Vite + Tailwind CSS | - |
+| Frontend | React + Vite + TypeScript + Tailwind CSS | - |
 | Backend | FastAPI + WebSockets | - |
 | STT | faster-whisper (local) | Deepgram, AssemblyAI, Google Cloud STT |
 | LLM | Ollama (local, free) | OpenAI GPT-4o (1-line config change) |
-| RAG | ChromaDB + sentence-transformers | - |
+| RAG | ChromaDB (Dense Vector) + BM25 (Sparse Lexical) Hybrid + Cross-Encoder Neural Rerank | - |
 | Audio | Browser MediaRecorder API | - |
 
 ## 🚀 Quick Start
@@ -109,12 +109,26 @@ DEEPGRAM_API_KEY=your-key-here
 STT_LANGUAGE=he
 ```
 
+### Configure Advanced RAG Options
+```env
+# Enable/disable BM25 lexical search fusion
+RAG_ENABLE_HYBRID=True
+# Weight for vector similarity vs. BM25 (0.5 means equal weight)
+RAG_HYBRID_ALPHA=0.5
+# Enable/disable Cross-Encoder neural reranking
+RAG_ENABLE_RERANKER=True
+# Model to use for Cross-Encoder reranking (local, runs on CPU)
+RAG_RERANKER_MODEL=cross-encoder/ms-marco-TinyBERT-L-2-v2
+# Enable/disable query cleaning (filler words filtering)
+RAG_CLEAN_QUERY=True
+```
+
 ## 📚 Adding Your Own Sales Data
 
 Place your sales playbooks, objection scripts, and training documents in `backend/data/`:
 
-- **JSON files**: Automatically parsed and chunked for RAG
-- **Text/Markdown files**: Split into chunks and indexed
+- **JSON files**: Automatically parsed and chunked for RAG (e.g., `sales_playbook.json` and `objection_scripts.json`). To add Hebrew datasets, use the `_he` suffix (e.g., `sales_playbook_he.json`) to automatically ingest them under the Hebrew language filter.
+- **Text/Markdown files**: Split into chunks and indexed. Use `_he` suffix (e.g. `product_manual_he.md`) for Hebrew versions.
 
 Then re-ingest:
 ```bash
@@ -125,9 +139,9 @@ python ingest.py --clear
 ## 🔑 Key Features
 
 - **Real-time STT**: Live speech-to-text with faster-whisper (supports 100+ languages)
-- **AI Coaching**: Streaming coaching suggestions powered by LLM
-- **RAG Knowledge Base**: Semantic search over thousands of sales documents
-- **Objection Detection**: Automatic detection of customer objections with scripted responses
-- **RTL Support**: Full right-to-left layout for Hebrew
-- **Demo Mode**: Pre-built sales call simulation for showcasing
+- **AI Coaching**: Streaming coaching suggestions powered by LLM (Ollama or OpenAI)
+- **Advanced RAG Engine**: Hybrid search (ChromaDB dense vectors + BM25 sparse lexical search) combined with neural reranking (Cross-Encoder TinyBERT). Features query pre-processing/filler-word cleaning and delta ingestion (manifest caching).
+- **Objection Detection**: Automatic detection of customer objections with scripted response options
+- **RTL Support**: Full right-to-left UI layout for Hebrew
+- **Demo Mode**: Pre-built, dual-language sales call simulation for quick showcasing without needing a mic
 - **Pluggable Architecture**: Swap STT/LLM providers with a config change

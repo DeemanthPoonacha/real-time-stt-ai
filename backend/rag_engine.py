@@ -347,7 +347,7 @@ class RAGEngine:
                 text = "\n".join([
                     f"category: Pricing Plans",
                     f"name: {name}",
-                    f"price: plan.get('price', '')" if isinstance(plan, str) else f"price: {plan.get('price', '')}",
+                    f"price: {plan}" if isinstance(plan, str) else f"price: {plan.get('price', '')}",
                     f"features: {', '.join(plan.get('features', []))}" if isinstance(plan, dict) else f"features: ",
                     f"best_for: {plan.get('best_for', '')}" if isinstance(plan, dict) else f"best_for: "
                 ])

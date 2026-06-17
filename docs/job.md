@@ -1,8 +1,9 @@
 # AI Developer Needed: Real-Time Speech-to-Text Integration with OpenAI API for Live Sales Coaching
 
-Posted 14-June-2026 | Worldwide
+[Link](https://www.upwork.com/jobs/~022066095558056705793?referrer_url_path=%2Fnx%2Fsearch%2Fjobs%2Fsaved%2Fdetails%2F~022066095558056705793) | Posted 14-June-2026 | Worldwide
 
 ## Summary
+
 We are looking for an experienced AI/Full-Stack Developer to build a Real-Time Sales Enablement Tool. The goal of this system is to listen to live sales calls in Hebrew, transcribe them instantly, and feed the text into an OpenAI agent that will provide real-time objections-handling tips to the sales representative.
 
 We already have the sales playbook, objections scripts, and prompts ready (currently configured in a Custom GPT setup). Your job will be to handle the pipeline integration, ultra-low latency streaming, and a simple frontend overlay/dashboard for the sales rep.
@@ -37,7 +38,7 @@ We already have the sales playbook, objections scripts, and prompts ready (curre
 
 - **Type:** Milestone-based project (with potential for long-term maintenance and upgrades).
 
-- **Timeline:** Expected MVP within  3-4 weeks.
+- **Timeline:** Expected MVP within 3-4 weeks.
 
 ## How to Apply:
 
