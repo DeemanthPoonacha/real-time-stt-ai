@@ -446,7 +446,7 @@ async def coaching_websocket(websocket: WebSocket):
                             messages = [{"role": "system", "content": system_prompt}]
                             
                             # Append recent context
-                            for entry in ai_coach.conversation_history[-8:]:
+                            for entry in ai_coach.conversation_history[-30:]:
                                 role = "assistant" if entry["speaker"] == "prospect" else "user"
                                 messages.append({"role": role, "content": entry["text"]})
                                 
