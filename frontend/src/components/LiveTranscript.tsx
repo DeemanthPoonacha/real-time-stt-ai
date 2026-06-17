@@ -121,8 +121,7 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
                     </span>
                   </div>
 
-                  {/* Speech Text Content */}
-                  <p className="text-sm text-text-primary leading-relaxed pl-7.5 pr-2">
+                  <p className="text-sm text-text-primary leading-relaxed ps-9 pe-2">
                     {segment.text}
                   </p>
                 </div>

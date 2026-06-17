@@ -3,12 +3,12 @@
     "description": "Simulated sales call between a CloudSync Pro sales rep and a prospect from TechStartup Inc.",
     "duration_seconds": 120,
     "language": "en",
-    "scenario": "Follow-up call with warm lead who downloaded a whitepaper"
+    "scenario": "Inbound call from a prospect who requested information"
   },
   "segments": [
     {
       "speaker": "rep",
-      "text": "Hi Sarah, this is Alex from CloudSync Pro. Thanks for taking the time to chat today!",
+      "text": "Hi Sarah, this is Alex from CloudSync Pro. Thanks for reaching out and scheduling a call today! I saw you requested some information on our website. How can I help you today?",
       "timestamp": 0.0,
       "delay_ms": 0
     },

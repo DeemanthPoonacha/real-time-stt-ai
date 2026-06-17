@@ -3,12 +3,12 @@
     "description": "Simulation d'appel de vente entre un représentant commercial CloudSync Pro et un prospect de TechStartup Inc.",
     "duration_seconds": 120,
     "language": "fr",
-    "scenario": "Appel de suivi avec un prospect qualifié ayant téléchargé un livre blanc"
+    "scenario": "Appel entrant d'un prospect ayant demandé des informations"
   },
   "segments": [
     {
       "speaker": "rep",
-      "text": "Bonjour Sarah, ici Alex de CloudSync Pro. Merci de prendre le temps d'échanger aujourd'hui !",
+      "text": "Bonjour Sarah, ici Alex de CloudSync Pro. Merci de nous avoir contactés et d'avoir planifié cet appel aujourd'hui ! J'ai vu que vous aviez demandé des informations sur notre site. Comment puis-je vous aider ?",
       "timestamp": 0.0,
       "delay_ms": 0
     },

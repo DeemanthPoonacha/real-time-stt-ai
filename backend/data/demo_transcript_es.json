@@ -3,12 +3,12 @@
     "description": "Simulación de llamada de ventas entre un representante de ventas de CloudSync Pro y un cliente potencial de TechStartup Inc.",
     "duration_seconds": 120,
     "language": "es",
-    "scenario": "Llamada de seguimiento con un cliente potencial interesado que descargó un informe técnico"
+    "scenario": "Llamada entrante de un cliente potencial que solicitó información"
   },
   "segments": [
     {
       "speaker": "rep",
-      "text": "Hola Sarah, soy Alex de CloudSync Pro. ¡Gracias por tomarse el tiempo para conversar hoy!",
+      "text": "Hola Sarah, soy Alex de CloudSync Pro. ¡Gracias por contactarnos y programar esta llamada hoy! Vi que solicitó información en nuestro sitio web. ¿En qué puedo ayudarle hoy?",
       "timestamp": 0.0,
       "delay_ms": 0
     },
