@@ -49,6 +49,32 @@ class TranscriptSegment:
         }
 
 
+class BaseSTTStreamSession(ABC):
+    """Abstract base class for provider streaming sessions."""
+
+    def __init__(self, language: str | None = None):
+        self.language = language
+        self.active_speaker = "rep"
+
+    def set_active_speaker(self, speaker: str):
+        self.active_speaker = speaker
+
+    @abstractmethod
+    async def send_audio(self, audio_data: np.ndarray):
+        """Send audio data to the stream."""
+        pass
+
+    @abstractmethod
+    async def flush(self) -> list[TranscriptSegment]:
+        """Flush remaining buffered audio if applicable."""
+        pass
+
+    @abstractmethod
+    async def close(self):
+        """Close the streaming session."""
+        pass
+
+
 class BaseSTTProvider(ABC):
     """Abstract base class for STT providers."""
 
@@ -58,15 +84,78 @@ class BaseSTTProvider(ABC):
         pass
 
     @abstractmethod
+    async def start_stream(self, on_transcript, language: str | None = None) -> BaseSTTStreamSession:
+        """Start a streaming session."""
+        pass
+
+    @abstractmethod
     async def transcribe(self, audio_data: np.ndarray,
                          language: str | None = None) -> list[TranscriptSegment]:
-        """Transcribe audio data and return segments."""
+        """Transcribe audio data and return segments (fallback/non-streaming)."""
         pass
 
     @abstractmethod
     async def cleanup(self):
         """Clean up resources."""
         pass
+
+
+class FasterWhisperStreamSession(BaseSTTStreamSession):
+    """Streaming session for local Faster-Whisper, mimicking streaming via buffering."""
+
+    def __init__(self, provider: 'FasterWhisperProvider', on_transcript, language: str | None = None):
+        super().__init__(language)
+        self.provider = provider
+        self.on_transcript = on_transcript
+        self.audio_buffer = np.array([], dtype=np.float32)
+        self.buffer_threshold = int(
+            settings.AUDIO_SAMPLE_RATE * settings.AUDIO_CHUNK_DURATION
+        )
+
+    async def send_audio(self, audio_data: np.ndarray):
+        # Buffer incoming audio
+        self.audio_buffer = np.concatenate([self.audio_buffer, audio_data])
+
+        # Transcribe when enough data has accumulated
+        if len(self.audio_buffer) < self.buffer_threshold:
+            return
+
+        audio_to_transcribe = self.audio_buffer.copy()
+        self.audio_buffer = np.array([], dtype=np.float32)
+
+        await self._process_and_callback(audio_to_transcribe)
+
+    async def _process_and_callback(self, audio_to_transcribe: np.ndarray):
+        # Apply simple energy-based VAD
+        energy = np.sqrt(np.mean(audio_to_transcribe ** 2))
+        if energy < 0.01:  # Silence threshold
+            logger.debug("Audio chunk below energy threshold, skipping")
+            return
+
+        segments = await self.provider.transcribe(audio_to_transcribe, self.language)
+        for s in segments:
+            if s.text.strip():
+                await self.on_transcript(s)
+
+    async def flush(self) -> list[TranscriptSegment]:
+        if len(self.audio_buffer) == 0:
+            return []
+        audio_to_transcribe = self.audio_buffer.copy()
+        self.audio_buffer = np.array([], dtype=np.float32)
+        
+        # We also return the segments directly to preserve compat with legacy flush()
+        energy = np.sqrt(np.mean(audio_to_transcribe ** 2))
+        if energy < 0.01:
+            return []
+        
+        segments = await self.provider.transcribe(audio_to_transcribe, self.language)
+        valid_segments = [s for s in segments if s.text.strip()]
+        for s in valid_segments:
+            await self.on_transcript(s)
+        return valid_segments
+
+    async def close(self):
+        self.audio_buffer = np.array([], dtype=np.float32)
 
 
 class FasterWhisperProvider(BaseSTTProvider):
@@ -99,6 +188,9 @@ class FasterWhisperProvider(BaseSTTProvider):
             )
         )
         logger.info("faster-whisper model loaded successfully")
+
+    async def start_stream(self, on_transcript, language: str | None = None) -> BaseSTTStreamSession:
+        return FasterWhisperStreamSession(self, on_transcript, language)
 
     async def transcribe(self, audio_data: np.ndarray,
                          language: str | None = None) -> list[TranscriptSegment]:
@@ -141,41 +233,25 @@ class FasterWhisperProvider(BaseSTTProvider):
         self.model = None
 
 
-class DeepgramProvider(BaseSTTProvider):
-    """
-    STT provider using Deepgram API.
-    Uses httpx to send raw PCM audio to Deepgram for ultra-low latency transcription.
-    """
+class DeepgramStreamSession(BaseSTTStreamSession):
+    """Streaming session for Deepgram Speech-to-Text API over WebSockets."""
 
-    def __init__(self):
-        self.api_key = settings.DEEPGRAM_API_KEY
-        self.client = None
+    def __init__(self, api_key: str, on_transcript, language: str | None = None):
+        super().__init__(language)
+        self.api_key = api_key
+        self.on_transcript = on_transcript
+        self.websocket = None
+        self.receive_task = None
+        self._connected = asyncio.Event()
 
-    async def initialize(self):
-        import httpx
-        logger.info("Initializing Deepgram provider...")
-        if not self.api_key:
-            logger.warning("DEEPGRAM_API_KEY is not set in config/env. Deepgram STT will fail.")
-        self.client = httpx.AsyncClient()
-
-    async def transcribe(self, audio_data: np.ndarray,
-                         language: str | None = None) -> list[TranscriptSegment]:
-        if not self.api_key:
-            raise ValueError("DEEPGRAM_API_KEY is not set. Please add it to your .env file.")
-
-        if self.client is None:
-            import httpx
-            self.client = httpx.AsyncClient()
-
-        # Convert float32 [-1, 1] to 16-bit PCM bytes
-        int16_data = (audio_data * 32767.0).astype(np.int16)
-        raw_bytes = int16_data.tobytes()
-
-        lang = language or settings.STT_LANGUAGE
+    async def connect(self):
+        import websockets
+        import urllib.parse
+        
+        lang = self.language or settings.STT_LANGUAGE
         if lang == "auto":
             lang = None
 
-        # Setup request parameters
         params = {
             "model": "nova-2",
             "smart_format": "true",
@@ -186,82 +262,420 @@ class DeepgramProvider(BaseSTTProvider):
         if lang:
             params["language"] = lang
 
+        query_str = urllib.parse.urlencode(params)
+        url = f"wss://api.deepgram.com/v1/listen?{query_str}"
         headers = {
-            "Authorization": f"Token {self.api_key}",
-            "Content-Type": f"audio/l16;rate={settings.AUDIO_SAMPLE_RATE};channels={settings.AUDIO_CHANNELS}"
+            "Authorization": f"Token {self.api_key}"
         }
 
+        logger.info(f"Connecting to Deepgram streaming WebSocket: {url}")
         try:
-            response = await self.client.post(
-                "https://api.deepgram.com/v1/listen",
-                params=params,
-                headers=headers,
-                content=raw_bytes,
-                timeout=10.0
-            )
-            response.raise_for_status()
-            result = response.json()
-
-            alternatives = result.get("results", {}).get("channels", [{}])[0].get("alternatives", [{}])
-            if not alternatives:
-                return []
-
-            text = alternatives[0].get("transcript", "").strip()
-            confidence = alternatives[0].get("confidence", 0.0)
-
-            if not text:
-                return []
-
-            return [TranscriptSegment(
-                text=text,
-                language=lang or "unknown",
-                confidence=confidence
-            )]
+            self.websocket = await websockets.connect(url, extra_headers=headers)
+            self.receive_task = asyncio.create_task(self._receive_loop())
+            self._connected.set()
+            logger.info("Connected to Deepgram STT stream")
         except Exception as e:
-            logger.error(f"Deepgram transcription error: {e}")
+            logger.error(f"Failed to connect to Deepgram streaming API: {e}")
             raise e
 
-    async def cleanup(self):
-        if self.client:
-            await self.client.aclose()
-            self.client = None
+    async def send_audio(self, audio_data: np.ndarray):
+        if not self._connected.is_set():
+            await self.connect()
+
+        if self.websocket is None:
+            return
+
+        # Convert float32 to 16-bit PCM bytes
+        int16_data = (audio_data * 32767.0).astype(np.int16)
+        raw_bytes = int16_data.tobytes()
+
+        try:
+            await self.websocket.send(raw_bytes)
+        except Exception as e:
+            logger.error(f"Error sending audio to Deepgram: {e}")
+
+    async def _receive_loop(self):
+        import json
+        try:
+            async for message in self.websocket:
+                response = json.loads(message)
+                is_final = response.get("is_final", True)
+                channel = response.get("channel", {})
+                alternatives = channel.get("alternatives", [])
+                if alternatives:
+                    text = alternatives[0].get("transcript", "").strip()
+                    confidence = alternatives[0].get("confidence", 0.0)
+                    if text and is_final:
+                        segment = TranscriptSegment(
+                            text=text,
+                            language=self.language or "unknown",
+                            confidence=confidence
+                        )
+                        await self.on_transcript(segment)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Deepgram receive loop error: {e}")
+
+    async def flush(self) -> list[TranscriptSegment]:
+        if self.websocket and self._connected.is_set():
+            import json
+            try:
+                await self.websocket.send(json.dumps({"type": "Finalize"}))
+            except Exception as e:
+                logger.error(f"Error sending Finalize to Deepgram: {e}")
+        return []
+
+    async def close(self):
+        if self.receive_task:
+            self.receive_task.cancel()
+            try:
+                await self.receive_task
+            except asyncio.CancelledError:
+                pass
+            self.receive_task = None
+
+        if self.websocket:
+            import json
+            try:
+                await self.websocket.send(json.dumps({"type": "CloseStream"}))
+                await self.websocket.close()
+            except Exception:
+                pass
+            self.websocket = None
+        self._connected.clear()
 
 
-class AssemblyAIProvider(BaseSTTProvider):
+class DeepgramProvider(BaseSTTProvider):
     """
-    Placeholder for AssemblyAI STT integration.
-    Swap in by setting STT_PROVIDER=assemblyai and ASSEMBLYAI_API_KEY.
+    STT provider using Deepgram streaming API over WebSockets.
     """
+
+    def __init__(self):
+        self.api_key = settings.DEEPGRAM_API_KEY
 
     async def initialize(self):
-        logger.info("AssemblyAI provider initialized (placeholder)")
+        logger.info("Initializing Deepgram provider...")
+        if not self.api_key:
+            logger.warning("DEEPGRAM_API_KEY is not set in config/env. Deepgram STT will fail.")
+
+    async def start_stream(self, on_transcript, language: str | None = None) -> BaseSTTStreamSession:
+        if not self.api_key:
+            raise ValueError("DEEPGRAM_API_KEY is not set. Please add it to your .env file.")
+        session = DeepgramStreamSession(self.api_key, on_transcript, language)
+        await session.connect()
+        return session
 
     async def transcribe(self, audio_data: np.ndarray,
                          language: str | None = None) -> list[TranscriptSegment]:
-        raise NotImplementedError(
-            "AssemblyAI provider not yet implemented. "
-            "Set STT_PROVIDER=faster-whisper to use the default provider."
-        )
+        # Fallback using streaming under the hood
+        segments = []
+        async def cb(seg):
+            segments.append(seg)
+            
+        session = await self.start_stream(cb, language)
+        await session.send_audio(audio_data)
+        await session.flush()
+        await asyncio.sleep(0.5)  # Wait briefly for server transcripts to arrive
+        await session.close()
+        return segments
 
     async def cleanup(self):
         pass
 
 
-class GoogleSTTProvider(BaseSTTProvider):
+class AssemblyAIStreamSession(BaseSTTStreamSession):
+    """Streaming session for AssemblyAI Speech-to-Text API over WebSockets."""
+
+    def __init__(self, api_key: str, on_transcript, language: str | None = None):
+        super().__init__(language)
+        self.api_key = api_key
+        self.on_transcript = on_transcript
+        self.websocket = None
+        self.receive_task = None
+        self._connected = asyncio.Event()
+
+    async def connect(self):
+        import websockets
+        import urllib.parse
+
+        params = {
+            "sample_rate": str(settings.AUDIO_SAMPLE_RATE),
+            "format_turns": "true"
+        }
+        query_str = urllib.parse.urlencode(params)
+        url = f"wss://streaming.assemblyai.com/v3/ws?{query_str}"
+        headers = {
+            "Authorization": self.api_key
+        }
+
+        logger.info(f"Connecting to AssemblyAI streaming WebSocket: {url}")
+        try:
+            self.websocket = await websockets.connect(url, extra_headers=headers)
+            self.receive_task = asyncio.create_task(self._receive_loop())
+            self._connected.set()
+            logger.info("Connected to AssemblyAI STT stream")
+        except Exception as e:
+            logger.error(f"Failed to connect to AssemblyAI streaming API: {e}")
+            raise e
+
+    async def send_audio(self, audio_data: np.ndarray):
+        if not self._connected.is_set():
+            await self.connect()
+
+        if self.websocket is None:
+            return
+
+        # Convert float32 to 16-bit PCM bytes
+        int16_data = (audio_data * 32767.0).astype(np.int16)
+        raw_bytes = int16_data.tobytes()
+
+        try:
+            await self.websocket.send(raw_bytes)
+        except Exception as e:
+            logger.error(f"Error sending audio to AssemblyAI: {e}")
+
+    async def _receive_loop(self):
+        import json
+        try:
+            async for message in self.websocket:
+                response = json.loads(message)
+                msg_type = response.get("type")
+
+                if msg_type == "Turn":
+                    transcript = response.get("transcript", "").strip()
+                    end_of_turn = response.get("end_of_turn", False)
+                    confidence = response.get("confidence", 1.0)
+                    
+                    if transcript and end_of_turn:
+                        segment = TranscriptSegment(
+                            text=transcript,
+                            language=self.language or "en",
+                            confidence=confidence
+                        )
+                        await self.on_transcript(segment)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"AssemblyAI receive loop error: {e}")
+
+    async def flush(self) -> list[TranscriptSegment]:
+        if self.websocket and self._connected.is_set():
+            import json
+            try:
+                await self.websocket.send(json.dumps({"type": "Terminate"}))
+            except Exception as e:
+                logger.error(f"Error flushing AssemblyAI stream: {e}")
+        return []
+
+    async def close(self):
+        if self.receive_task:
+            self.receive_task.cancel()
+            try:
+                await self.receive_task
+            except asyncio.CancelledError:
+                pass
+            self.receive_task = None
+
+        if self.websocket:
+            import json
+            try:
+                await self.websocket.send(json.dumps({"type": "Terminate"}))
+                await self.websocket.close()
+            except Exception:
+                pass
+            self.websocket = None
+        self._connected.clear()
+
+
+class AssemblyAIProvider(BaseSTTProvider):
     """
-    Placeholder for Google Cloud STT integration.
-    Swap in by setting STT_PROVIDER=google and GOOGLE_APPLICATION_CREDENTIALS.
+    STT provider using AssemblyAI Universal Streaming API.
     """
 
+    def __init__(self):
+        self.api_key = settings.ASSEMBLYAI_API_KEY
+
     async def initialize(self):
-        logger.info("Google Cloud STT provider initialized (placeholder)")
+        logger.info("AssemblyAI provider initialized")
+        if not self.api_key:
+            logger.warning("ASSEMBLYAI_API_KEY is not set. AssemblyAI STT will fail.")
+
+    async def start_stream(self, on_transcript, language: str | None = None) -> BaseSTTStreamSession:
+        if not self.api_key:
+            raise ValueError("ASSEMBLYAI_API_KEY is not set. Please add it to your .env file.")
+        session = AssemblyAIStreamSession(self.api_key, on_transcript, language)
+        await session.connect()
+        return session
 
     async def transcribe(self, audio_data: np.ndarray,
                          language: str | None = None) -> list[TranscriptSegment]:
-        raise NotImplementedError(
-            "Google Cloud STT provider not yet implemented. "
-            "Set STT_PROVIDER=faster-whisper to use the default provider."
+        # Fallback using streaming under the hood
+        segments = []
+        async def cb(seg):
+            segments.append(seg)
+            
+        session = await self.start_stream(cb, language)
+        await session.send_audio(audio_data)
+        await session.flush()
+        await asyncio.sleep(0.5)
+        await session.close()
+        return segments
+
+    async def cleanup(self):
+        pass
+
+
+class GoogleSTTStreamSession(BaseSTTStreamSession):
+    """Streaming session for Google Cloud Speech-to-Text API using Async Client."""
+
+    def __init__(self, credentials_path: str, on_transcript, language: str | None = None):
+        super().__init__(language)
+        self.credentials_path = credentials_path
+        self.on_transcript = on_transcript
+        self.audio_queue = asyncio.Queue()
+        self.client = None
+        self.stream_task = None
+        self.closed = False
+
+    async def connect(self):
+        try:
+            from google.cloud import speech_v1p1beta1 as speech
+            import os
+        except ImportError:
+            raise ImportError(
+                "Google Cloud STT streaming requires the 'google-cloud-speech' package. "
+                "Please install it using: pip install google-cloud-speech"
+            )
+
+        if self.credentials_path:
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.credentials_path
+
+        self.client = speech.SpeechAsyncClient()
+        self.stream_task = asyncio.create_task(self._run_stream())
+        logger.info("Connected to Google Cloud STT stream")
+
+    async def send_audio(self, audio_data: np.ndarray):
+        if self.closed:
+            return
+
+        if self.client is None:
+            await self.connect()
+
+        # Convert float32 to 16-bit PCM bytes
+        int16_data = (audio_data * 32767.0).astype(np.int16)
+        raw_bytes = int16_data.tobytes()
+
+        await self.audio_queue.put(raw_bytes)
+
+    async def _run_stream(self):
+        from google.cloud import speech_v1p1beta1 as speech
+        
+        lang = self.language or settings.STT_LANGUAGE
+        if lang == "auto":
+            lang = "en-US"
+        elif lang == "he":
+            lang = "he-IL"
+        elif lang == "en":
+            lang = "en-US"
+
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=settings.AUDIO_SAMPLE_RATE,
+            language_code=lang,
+            enable_automatic_punctuation=True,
         )
+        streaming_config = speech.StreamingRecognitionConfig(
+            config=config,
+            interim_results=False
+        )
+
+        async def request_generator():
+            yield speech.StreamingRecognizeRequest(streaming_config=streaming_config)
+            
+            while not self.closed:
+                try:
+                    chunk = await self.audio_queue.get()
+                    if chunk is None:
+                        break
+                    yield speech.StreamingRecognizeRequest(audio_content=chunk)
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    break
+
+        try:
+            responses = await self.client.streaming_recognize(requests=request_generator())
+            async for response in responses:
+                for result in response.results:
+                    if result.is_final:
+                        alternative = result.alternatives[0]
+                        text = alternative.transcript.strip()
+                        confidence = alternative.confidence
+                        if text:
+                            segment = TranscriptSegment(
+                                text=text,
+                                language=self.language or "unknown",
+                                confidence=confidence
+                            )
+                            await self.on_transcript(segment)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error(f"Google Cloud STT streaming recognize error: {e}")
+
+    async def flush(self) -> list[TranscriptSegment]:
+        await self.audio_queue.put(None)
+        await asyncio.sleep(0.1)
+        if not self.closed:
+            self.audio_queue = asyncio.Queue()
+            self.stream_task = asyncio.create_task(self._run_stream())
+        return []
+
+    async def close(self):
+        self.closed = True
+        await self.audio_queue.put(None)
+        if self.stream_task:
+            self.stream_task.cancel()
+            try:
+                await self.stream_task
+            except asyncio.CancelledError:
+                pass
+            self.stream_task = None
+        self.client = None
+
+
+class GoogleSTTProvider(BaseSTTProvider):
+    """
+    STT provider using Google Cloud STT Async Streaming Client.
+    """
+
+    def __init__(self):
+        self.credentials_path = settings.GOOGLE_APPLICATION_CREDENTIALS
+
+    async def initialize(self):
+        logger.info("Google Cloud STT provider initialized")
+        if not self.credentials_path:
+            logger.warning("GOOGLE_APPLICATION_CREDENTIALS is not set. Google STT will fail.")
+
+    async def start_stream(self, on_transcript, language: str | None = None) -> BaseSTTStreamSession:
+        session = GoogleSTTStreamSession(self.credentials_path, on_transcript, language)
+        await session.connect()
+        return session
+
+    async def transcribe(self, audio_data: np.ndarray,
+                         language: str | None = None) -> list[TranscriptSegment]:
+        # Fallback to streaming session
+        segments = []
+        async def cb(seg):
+            segments.append(seg)
+            
+        session = await self.start_stream(cb, language)
+        await session.send_audio(audio_data)
+        await session.flush()
+        await asyncio.sleep(0.5)
+        await session.close()
+        return segments
 
     async def cleanup(self):
         pass
@@ -317,6 +731,12 @@ class STTEngine:
         samples /= 32768.0  # Normalize to [-1, 1]
 
         return samples
+
+    async def start_stream(self, on_transcript, language: str | None = None) -> BaseSTTStreamSession:
+        """Start a streaming session using the active provider."""
+        if not self._initialized:
+            await self.initialize()
+        return await self.provider.start_stream(on_transcript, language)
 
     async def process_audio_chunk(self, base64_audio: str,
                                    language: str | None = None) -> list[TranscriptSegment]:
@@ -384,3 +804,4 @@ class STTEngine:
         """Clean up resources."""
         await self.provider.cleanup()
         self._initialized = False
+

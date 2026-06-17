@@ -298,12 +298,48 @@ async def coaching_websocket(websocket: WebSocket):
     ai_coach = AICoach(rag_engine)
     language = settings.STT_LANGUAGE
     coaching_task: asyncio.Task | None = None
+    stt_stream = None
 
     async def send_json(data: dict):
         try:
             await websocket.send_json(data)
         except Exception:
             pass
+
+    async def on_stt_transcript(segment):
+        nonlocal coaching_task
+        transcript_text = segment.text.strip()
+        if not transcript_text:
+            return
+
+        current_speaker = stt_stream.active_speaker if stt_stream else "rep"
+
+        # Send transcript to client
+        await send_json({
+            "type": "transcript",
+            "text": transcript_text,
+            "timestamp": segment.timestamp,
+            "language": segment.language,
+            "speaker": current_speaker,
+        })
+
+        # Cancel any pending coaching task
+        if coaching_task and not coaching_task.done():
+            coaching_task.cancel()
+
+        coaching_task = asyncio.create_task(
+            _stream_coaching(ai_coach, send_json, transcript_text, speaker=current_speaker, language=language)
+        )
+
+    # Initialize STT streaming session
+    try:
+        stt_stream = await stt_engine.start_stream(
+            on_transcript=on_stt_transcript,
+            language=language
+        )
+    except Exception as e:
+        logger.error(f"Failed to start STT stream: {e}")
+        await send_json({"type": "error", "message": f"STT Stream init failed: {str(e)}"})
 
     await send_json({"type": "status", "state": "ready"})
 
@@ -316,13 +352,37 @@ async def coaching_websocket(websocket: WebSocket):
             if msg_type == "config":
                 language = message.get("language", language)
                 ai_coach.reset()
-                stt_engine.reset_buffer()
+                
+                # Close old stream and start new one
+                if stt_stream:
+                    await stt_stream.close()
+                try:
+                    stt_stream = await stt_engine.start_stream(
+                        on_transcript=on_stt_transcript,
+                        language=language
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to start STT stream during config: {e}")
+                    await send_json({"type": "error", "message": f"STT Stream config failed: {str(e)}"})
+
                 await send_json({"type": "status", "state": "ready"})
                 logger.info(f"Config updated: language={language}")
 
             elif msg_type == "reset":
                 ai_coach.reset()
-                stt_engine.reset_buffer()
+                
+                # Close old stream and start new one
+                if stt_stream:
+                    await stt_stream.close()
+                try:
+                    stt_stream = await stt_engine.start_stream(
+                        on_transcript=on_stt_transcript,
+                        language=language
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to start STT stream during reset: {e}")
+                    await send_json({"type": "error", "message": f"STT Stream reset failed: {str(e)}"})
+
                 await send_json({"type": "status", "state": "ready"})
                 logger.info("Session reset")
 
@@ -334,31 +394,17 @@ async def coaching_websocket(websocket: WebSocket):
 
                 await send_json({"type": "status", "state": "processing"})
 
-                # Transcribe
-                segments = await stt_engine.process_audio_chunk(
-                    audio_data, language=language
-                )
-
-                if segments:
-                    for segment in segments:
-                        transcript_text = segment.text
-
-                        # Send transcript to client
-                        await send_json({
-                            "type": "transcript",
-                            "text": transcript_text,
-                            "timestamp": segment.timestamp,
-                            "language": segment.language,
-                            "speaker": speaker,
-                        })
-
-                        # Cancel any pending coaching task
-                        if coaching_task and not coaching_task.done():
-                            coaching_task.cancel()
-
-                        coaching_task = asyncio.create_task(
-                            _stream_coaching(ai_coach, send_json, transcript_text, speaker=speaker, language=language)
-                        )
+                # Update speaker tracking in the stream
+                if stt_stream:
+                    stt_stream.set_active_speaker(speaker)
+                    
+                # Decode base64 to numpy float32 array and send to STT stream
+                try:
+                    samples = stt_engine._decode_audio(audio_data)
+                    if stt_stream:
+                        await stt_stream.send_audio(samples)
+                except Exception as e:
+                    logger.error(f"Error decoding or sending audio chunk: {e}")
 
                 await send_json({"type": "status", "state": "listening"})
 
@@ -442,28 +488,10 @@ async def coaching_websocket(websocket: WebSocket):
                 speaker = message.get("speaker", "rep")
                 await send_json({"type": "status", "state": "processing"})
 
-                # Flush STT buffer
-                segments = await stt_engine.flush(language=language)
-
-                if segments:
-                    for segment in segments:
-                        transcript_text = segment.text
-
-                        # Send transcript to client
-                        await send_json({
-                            "type": "transcript",
-                            "text": transcript_text,
-                            "timestamp": segment.timestamp,
-                            "language": segment.language,
-                            "speaker": speaker,
-                        })
-
-                        # Cancel any pending coaching task
-                        if coaching_task and not coaching_task.done():
-                            coaching_task.cancel()
-
-                        # Stream the coaching suggestion synchronously (wait for it to complete)
-                        await _stream_coaching(ai_coach, send_json, transcript_text, speaker=speaker, language=language)
+                # Flush STT stream
+                if stt_stream:
+                    stt_stream.set_active_speaker(speaker)
+                    await stt_stream.flush()
 
                 # Send a signal that flushing is completely done!
                 await send_json({"type": "flush_done"})
@@ -474,6 +502,9 @@ async def coaching_websocket(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         await send_json({"type": "error", "message": str(e)[:200]})
+    finally:
+        if stt_stream:
+            await stt_stream.close()
 
 
 async def _stream_coaching(ai_coach: AICoach, send_json, transcript_text: str, speaker: str = "unknown", language: str = "en"):
