@@ -242,7 +242,31 @@ class DeepgramStreamSession(BaseSTTStreamSession):
         self.on_transcript = on_transcript
         self.websocket = None
         self.receive_task = None
+        self.keepalive_task = None
         self._connected = asyncio.Event()
+
+    async def _handle_disconnect(self):
+        self._connected.clear()
+        if self.websocket:
+            try:
+                await self.websocket.close()
+            except Exception:
+                pass
+            self.websocket = None
+        if self.keepalive_task:
+            try:
+                self.keepalive_task.cancel()
+            except Exception:
+                pass
+            self.keepalive_task = None
+        
+        current_task = asyncio.current_task()
+        if self.receive_task and self.receive_task != current_task:
+            try:
+                self.receive_task.cancel()
+            except Exception:
+                pass
+            self.receive_task = None
 
     async def connect(self):
         import websockets
@@ -252,8 +276,12 @@ class DeepgramStreamSession(BaseSTTStreamSession):
         if lang == "auto":
             lang = None
 
+        model = "nova-2"
+        if lang == "he":
+            model = "nova-3"
+
         params = {
-            "model": "nova-2",
+            "model": model,
             "smart_format": "true",
             "encoding": "linear16",
             "sample_rate": str(settings.AUDIO_SAMPLE_RATE),
@@ -270,9 +298,10 @@ class DeepgramStreamSession(BaseSTTStreamSession):
 
         logger.info(f"Connecting to Deepgram streaming WebSocket: {url}")
         try:
-            self.websocket = await websockets.connect(url, extra_headers=headers)
-            self.receive_task = asyncio.create_task(self._receive_loop())
+            self.websocket = await websockets.connect(url, additional_headers=headers)
             self._connected.set()
+            self.receive_task = asyncio.create_task(self._receive_loop())
+            self.keepalive_task = asyncio.create_task(self._keepalive_loop())
             logger.info("Connected to Deepgram STT stream")
         except Exception as e:
             logger.error(f"Failed to connect to Deepgram streaming API: {e}")
@@ -293,6 +322,25 @@ class DeepgramStreamSession(BaseSTTStreamSession):
             await self.websocket.send(raw_bytes)
         except Exception as e:
             logger.error(f"Error sending audio to Deepgram: {e}")
+            await self._handle_disconnect()
+
+    async def _keepalive_loop(self):
+        import json
+        try:
+            while self.websocket and self._connected.is_set():
+                await asyncio.sleep(5)
+                if self.websocket and self._connected.is_set():
+                    try:
+                        await self.websocket.send(json.dumps({"type": "KeepAlive"}))
+                        logger.debug("Sent KeepAlive to Deepgram")
+                    except Exception as e:
+                        logger.warning(f"Failed to send KeepAlive to Deepgram: {e}")
+                        break
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if self._connected.is_set():
+                asyncio.create_task(self._handle_disconnect())
 
     async def _receive_loop(self):
         import json
@@ -316,6 +364,8 @@ class DeepgramStreamSession(BaseSTTStreamSession):
             pass
         except Exception as e:
             logger.error(f"Deepgram receive loop error: {e}")
+        finally:
+            await self._handle_disconnect()
 
     async def flush(self) -> list[TranscriptSegment]:
         if self.websocket and self._connected.is_set():
@@ -327,23 +377,7 @@ class DeepgramStreamSession(BaseSTTStreamSession):
         return []
 
     async def close(self):
-        if self.receive_task:
-            self.receive_task.cancel()
-            try:
-                await self.receive_task
-            except asyncio.CancelledError:
-                pass
-            self.receive_task = None
-
-        if self.websocket:
-            import json
-            try:
-                await self.websocket.send(json.dumps({"type": "CloseStream"}))
-                await self.websocket.close()
-            except Exception:
-                pass
-            self.websocket = None
-        self._connected.clear()
+        await self._handle_disconnect()
 
 
 class DeepgramProvider(BaseSTTProvider):
@@ -395,6 +429,23 @@ class AssemblyAIStreamSession(BaseSTTStreamSession):
         self.receive_task = None
         self._connected = asyncio.Event()
 
+    async def _handle_disconnect(self):
+        self._connected.clear()
+        if self.websocket:
+            try:
+                await self.websocket.close()
+            except Exception:
+                pass
+            self.websocket = None
+        
+        current_task = asyncio.current_task()
+        if self.receive_task and self.receive_task != current_task:
+            try:
+                self.receive_task.cancel()
+            except Exception:
+                pass
+            self.receive_task = None
+
     async def connect(self):
         import websockets
         import urllib.parse
@@ -411,7 +462,7 @@ class AssemblyAIStreamSession(BaseSTTStreamSession):
 
         logger.info(f"Connecting to AssemblyAI streaming WebSocket: {url}")
         try:
-            self.websocket = await websockets.connect(url, extra_headers=headers)
+            self.websocket = await websockets.connect(url, additional_headers=headers)
             self.receive_task = asyncio.create_task(self._receive_loop())
             self._connected.set()
             logger.info("Connected to AssemblyAI STT stream")
@@ -434,6 +485,7 @@ class AssemblyAIStreamSession(BaseSTTStreamSession):
             await self.websocket.send(raw_bytes)
         except Exception as e:
             logger.error(f"Error sending audio to AssemblyAI: {e}")
+            await self._handle_disconnect()
 
     async def _receive_loop(self):
         import json
@@ -458,6 +510,8 @@ class AssemblyAIStreamSession(BaseSTTStreamSession):
             pass
         except Exception as e:
             logger.error(f"AssemblyAI receive loop error: {e}")
+        finally:
+            await self._handle_disconnect()
 
     async def flush(self) -> list[TranscriptSegment]:
         if self.websocket and self._connected.is_set():
@@ -469,23 +523,7 @@ class AssemblyAIStreamSession(BaseSTTStreamSession):
         return []
 
     async def close(self):
-        if self.receive_task:
-            self.receive_task.cancel()
-            try:
-                await self.receive_task
-            except asyncio.CancelledError:
-                pass
-            self.receive_task = None
-
-        if self.websocket:
-            import json
-            try:
-                await self.websocket.send(json.dumps({"type": "Terminate"}))
-                await self.websocket.close()
-            except Exception:
-                pass
-            self.websocket = None
-        self._connected.clear()
+        await self._handle_disconnect()
 
 
 class AssemblyAIProvider(BaseSTTProvider):
