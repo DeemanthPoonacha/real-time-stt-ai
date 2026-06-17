@@ -50,7 +50,7 @@ interface PlaybookSection {
  * PlaybookSidebar — Dynamic lookup for company product playbook details.
  * Supports keyword search, category quick-filter chips, and stateful copying.
  */
-export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs = [] }: { language?: string; activeRetrievedDocs?: any[] }) {
+export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs = [], onSpeakScript }: { language?: string; activeRetrievedDocs?: any[]; onSpeakScript?: (script: string) => void }) {
   const [playbook, setPlaybook] = useState<PlaybookData | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ pricing: true });
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -401,7 +401,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                             ))}
                           </div>
 
-                          <div className="mt-2.5 pt-2 border-t border-white/[0.02] flex items-center gap-1">
+                          <div className="mt-2.5 pt-2 border-t border-white/[0.02] flex items-center justify-between">
                             <span className={`text-[9px] font-extrabold uppercase tracking-wide transition-all duration-200 ${
                               copiedItemKey === uniqueKey
                                 ? 'text-[--color-accent-emerald] opacity-100'
@@ -409,6 +409,25 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                             }`}>
                               {copiedItemKey === uniqueKey ? t('planCopied', language) : t('copyPlanDetails', language)}
                             </span>
+                            {onSpeakScript && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSpeakScript(
+                                    language === 'he'
+                                      ? `תוכנית ${name} עולה ${price} וכוללת ${item.detail}`
+                                      : `${name} plan is ${price} and includes ${item.detail}`
+                                  );
+                                }}
+                                className="flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-[--color-text-primary] transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100"
+                                title={language === 'he' ? 'דבר' : 'Speak'}
+                              >
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-0.5">
+                                  <polygon points="5 3 19 12 5 21 5 3" />
+                                </svg>
+                                <span>{language === 'he' ? 'דבר' : 'Speak'}</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -443,7 +462,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                           <p className="border-l pl-2 text-sm text-[--color-text-secondary] leading-relaxed">
                             {item.detail}
                           </p>
-                          <div className="mt-2.5 flex items-center gap-1">
+                          <div className="mt-2.5 flex items-center justify-between">
                             <span className={`text-[9px] font-extrabold uppercase tracking-wide transition-all duration-200 ${
                               copiedItemKey === uniqueKey
                                 ? 'text-[--color-accent-emerald] opacity-100'
@@ -451,6 +470,21 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                             }`}>
                               {copiedItemKey === uniqueKey ? t('scriptCopied', language) : t('clickToCopy', language)}
                             </span>
+                            {onSpeakScript && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSpeakScript(item.detail);
+                                }}
+                                className="flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-[--color-text-primary] transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100"
+                                title={language === 'he' ? 'דבר' : 'Speak'}
+                              >
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-0.5">
+                                  <polygon points="5 3 19 12 5 21 5 3" />
+                                </svg>
+                                <span>{language === 'he' ? 'דבר' : 'Speak'}</span>
+                              </button>
+                            )}
                           </div>
                         </div>
                       );

@@ -448,11 +448,26 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                         </h3>
                       )}
 
-                      {parsed.suggestion && (
-                        <p className="text-xs text-[--color-text-secondary] leading-relaxed typing-cursor font-medium">
-                          {parsed.suggestion}
-                        </p>
-                      )}
+                      {/* Suggestion Text */}
+                      <div className="flex items-start justify-between gap-4">
+                        {parsed.suggestion && (
+                          <p className="text-sm text-[--color-text-secondary] leading-relaxed typing-cursor font-semibold flex-grow">
+                            {parsed.suggestion}
+                          </p>
+                        )}
+                        {!parsed.script && parsed.suggestion && onSpeakScript && (
+                          <button
+                            onClick={() => onSpeakScript(parsed.suggestion!)}
+                            className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+                            title={language === 'he' ? 'דבר הצעת אימון' : 'Speak Suggestion'}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+                              <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            <span>{language === 'he' ? 'דבר הצעה' : 'Speak Suggestion'}</span>
+                          </button>
+                        )}
+                      </div>
 
                       {parsed.script && (
                         <div className="mt-4 relative">
@@ -461,6 +476,17 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                               <span className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold">
                                 {t('dialogueTalkTrack', language)}
                               </span>
+                              {onSpeakScript && (
+                                <button
+                                  onClick={() => onSpeakScript(parsed.script!)}
+                                  className="flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+                                    <polygon points="5 3 19 12 5 21 5 3" />
+                                  </svg>
+                                  <span>{language === 'he' ? 'דבר תסריט מוצע' : 'Speak Suggested Script'}</span>
+                                </button>
+                              )}
                             </div>
                             <p className="text-xs text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10">
                               "{parsed.script}"

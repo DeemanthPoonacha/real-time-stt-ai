@@ -46,6 +46,8 @@ export class DemoPlayer {
   private dynamicTurnCount = 0;
   private waitingForFlush = false;
   private repTriggerResolve: ((script: string) => void) | null = null;
+  private interruptedByRepScript: string | null = null;
+  private activeSpeakResolve: (() => void) | null = null;
 
   // Web Audio elements for streaming TTS output to WebSocket
   private audioContext: AudioContext | null = null;
@@ -127,12 +129,33 @@ export class DemoPlayer {
   }
 
   triggerRepresentativeResponse(script: string) {
+    console.log(`📡 demoPlayer: triggerRepresentativeResponse called with script: "${script.substring(0, 30)}..."`);
+    
+    // Stop any active audio or local speech synthesis
+    if ((this as any)._activeAudio) {
+      try {
+        (this as any)._activeAudio.pause();
+        this._stopStreamingAudio();
+      } catch (e) {}
+      (this as any)._activeAudio = null;
+    }
+    window.speechSynthesis.cancel();
+
+    // Resolve any active speak promise immediately to unblock execution loops
+    if (this.activeSpeakResolve) {
+      const resolveFn = this.activeSpeakResolve;
+      this.activeSpeakResolve = null;
+      resolveFn();
+    }
+
     if (this.repTriggerResolve) {
-      console.log(`📡 demoPlayer: User manually triggered rep script: "${script.substring(0, 30)}..."`);
-      this.repTriggerResolve(script);
+      const resolveFn = this.repTriggerResolve;
       this.repTriggerResolve = null;
+      resolveFn(script);
     } else {
-      console.warn("⚠️ demoPlayer: No active representative turn waiting for trigger.");
+      // Interrupt current step and force jump to rep turn
+      this.interruptedByRepScript = script;
+      this.waitingForFlush = false; // abort flush wait if any
     }
   }
 
@@ -152,6 +175,43 @@ export class DemoPlayer {
     this.audioCache.set(cacheKey, audio);
   }
 
+  private async speakRepScript(scriptToSpeak: string) {
+    this.interruptedByRepScript = null; // Reset the flag
+    this.latestRepScript = null;
+
+    // Show representative transcript in UI
+    this.onTranscript?.({
+      text: scriptToSpeak,
+      speaker: 'rep',
+      timestamp: Date.now() / 1000,
+    });
+
+    // Report progress
+    const totalTurns = this.isDynamic ? MAX_CONV_LIMIT : this.segments.length;
+    this.onProgress?.({
+      current: this.dynamicTurnCount,
+      total: totalTurns,
+      speaker: 'rep',
+    });
+    this.dynamicTurnCount++;
+
+    // Speak representative script
+    this.onSpeakingChange?.('rep');
+    // Retrieve pre-fetched dynamic audio if available
+    const audioToPlay = this.audioCache.get('dynamic-rep') || null;
+    this.audioCache.delete('dynamic-rep');
+    
+    await this._speak(scriptToSpeak, 'rep', audioToPlay);
+    this.onSpeakingChange?.(null);
+
+    // Send rep response to backend to trigger the next dynamic prospect turn!
+    this.wsManager?.send({
+      type: 'demo_text',
+      text: scriptToSpeak,
+      speaker: 'rep',
+    });
+  }
+
   async handleDynamicProspectResponse(text: string) {
     if (this.isCancelled) return;
 
@@ -165,12 +225,24 @@ export class DemoPlayer {
     });
     this.dynamicTurnCount++;
 
+    // Check interruption BEFORE speaking
+    if (this.interruptedByRepScript !== null) {
+      await this.speakRepScript(this.interruptedByRepScript);
+      return;
+    }
+
     // 2. Speak prospect's text via TTS and wait for it to finish (this streams the audio to backend STT)
     this.onSpeakingChange?.('prospect');
     await this._speak(text, 'prospect');
     this.onSpeakingChange?.(null);
 
     if (this.isCancelled) return;
+
+    // Check interruption AFTER speaking (during flush)
+    if (this.interruptedByRepScript !== null) {
+      await this.speakRepScript(this.interruptedByRepScript);
+      return;
+    }
 
     // 3. Flush the backend STT buffer and wait for the final suggestion to finish streaming
     if (this.wsManager) {
@@ -182,6 +254,11 @@ export class DemoPlayer {
       });
       // Wait for flush to be complete (deterministic backend-driven sync loop)
       while (this.waitingForFlush && !this.isCancelled) {
+        if (this.interruptedByRepScript !== null) {
+          this.waitingForFlush = false;
+          await this.speakRepScript(this.interruptedByRepScript);
+          return;
+        }
         await this._sleep(100);
       }
     }
@@ -252,40 +329,7 @@ export class DemoPlayer {
 
     if (this.isCancelled) return;
 
-    // Reset rep script
-    this.latestRepScript = null;
-
-    // Retrieve pre-fetched dynamic audio if available
-    const audioToPlay = this.audioCache.get('dynamic-rep') || null;
-    this.audioCache.delete('dynamic-rep');
-
-    // Show representative transcript in UI
-    this.onTranscript?.({
-      text: scriptToSpeak,
-      speaker: 'rep',
-      timestamp: Date.now() / 1000,
-    });
-
-    // Report progress
-    this.onProgress?.({
-      current: this.dynamicTurnCount,
-      total: MAX_CONV_LIMIT,
-      speaker: 'rep',
-    });
-    this.dynamicTurnCount++;
-
-    // Speak representative script
-    this.onSpeakingChange?.('rep');
-    await this._speak(scriptToSpeak, 'rep', audioToPlay);
-    this.onSpeakingChange?.(null);
-
-    // Send rep response to backend to trigger the next dynamic prospect turn!
-    this.wsManager?.send({
-      type: 'demo_text',
-      text: scriptToSpeak,
-      speaker: 'rep',
-    });
-
+    await this.speakRepScript(scriptToSpeak);
   }
 
   language = 'en';
@@ -377,6 +421,11 @@ export class DemoPlayer {
       for (let i = 0; i < this.segments.length; i++) {
         if (this.isCancelled) break;
 
+        if (this.interruptedByRepScript !== null) {
+          await this.speakRepScript(this.interruptedByRepScript);
+          continue;
+        }
+
         // Pre-fetch the next segment in the background
         this._prefetchNextSegment(i + 1);
 
@@ -388,6 +437,11 @@ export class DemoPlayer {
           await this._sleep(delay * 1000);
         }
         if (this.isCancelled) break;
+
+        if (this.interruptedByRepScript !== null) {
+          await this.speakRepScript(this.interruptedByRepScript);
+          continue;
+        }
 
         let textToSpeak = segment.text;
         let audioToPlay: HTMLAudioElement | null = null;
@@ -455,6 +509,11 @@ export class DemoPlayer {
 
         if (this.isCancelled) break;
 
+        if (this.interruptedByRepScript !== null) {
+          await this.speakRepScript(this.interruptedByRepScript);
+          continue;
+        }
+
         // Flush and wait for suggestions if the prospect was speaking
         if (segment.speaker === 'prospect' && this.wsManager) {
           console.log("📡 demoPlayer (static): Sending flush to backend STT...");
@@ -464,6 +523,11 @@ export class DemoPlayer {
             speaker: 'prospect',
           });
           while (this.waitingForFlush && !this.isCancelled) {
+            if (this.interruptedByRepScript !== null) {
+              this.waitingForFlush = false;
+              await this.speakRepScript(this.interruptedByRepScript);
+              break;
+            }
             await this._sleep(100);
           }
         }
@@ -489,6 +553,13 @@ export class DemoPlayer {
       const synth = window.speechSynthesis;
       synth.cancel();
 
+      const handleResolve = () => {
+        this.activeSpeakResolve = null;
+        resolve();
+      };
+
+      this.activeSpeakResolve = handleResolve;
+
       const fallbackToLocal = () => {
         // Send backup text message to backend so that conversation doesn't get stuck if streaming fails
         if (speaker === 'prospect') {
@@ -509,11 +580,11 @@ export class DemoPlayer {
             utterance.pitch = speaker === 'rep' ? 1.0 : 1.15;
             utterance.rate = 1.0 * this.speed;
             utterance.volume = 0.8;
-            utterance.onend = () => resolve();
-            utterance.onerror = () => resolve();
+            utterance.onend = handleResolve;
+            utterance.onerror = handleResolve;
             synth.speak(utterance);
           } else {
-            resolve();
+            handleResolve();
           }
         } else {
           const utterance = new SpeechSynthesisUtterance(text);
@@ -527,8 +598,8 @@ export class DemoPlayer {
             utterance.rate = 0.95 * this.speed;
           }
           utterance.volume = 0.8;
-          utterance.onend = () => resolve();
-          utterance.onerror = () => resolve();
+          utterance.onend = handleResolve;
+          utterance.onerror = handleResolve;
           synth.speak(utterance);
         }
       };
@@ -553,7 +624,7 @@ export class DemoPlayer {
       audio.onended = () => {
         this._stopStreamingAudio();
         (this as any)._activeAudio = null;
-        resolve();
+        handleResolve();
       };
 
       audio.onerror = (e) => {

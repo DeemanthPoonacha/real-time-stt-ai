@@ -185,6 +185,8 @@ export default function App() {
       demoRef.current.triggerRepresentativeResponse(script);
     }
     awaitingNewProspectTurnRef.current = true;
+    setStreamingText('');
+    setIsStreaming(false);
   }, []);
 
   // --- Toggle Recording ---
@@ -511,7 +513,11 @@ export default function App() {
 
         {/* Right: Playbook */}
         <div className="col-span-3 h-full flex flex-col min-h-0">
-          <PlaybookSidebar language={language} activeRetrievedDocs={activeRetrievedDocs} />
+          <PlaybookSidebar
+            language={language}
+            activeRetrievedDocs={activeRetrievedDocs}
+            onSpeakScript={isDemo ? handleSpeakSuggestedScript : undefined}
+          />
         </div>
       </main>
     </div>
