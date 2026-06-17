@@ -209,7 +209,7 @@ class FasterWhisperProvider(BaseSTTProvider):
             segments_gen, info = self.model.transcribe(
                 audio_data,
                 language=lang,
-                beam_size=5,
+                beam_size=1,
                 vad_filter=True,
                 vad_parameters=dict(
                     min_silence_duration_ms=500,
