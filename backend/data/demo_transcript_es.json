@@ -1,0 +1,136 @@
+{
+  "demo_metadata": {
+    "description": "Simulación de llamada de ventas entre un representante de ventas de CloudSync Pro y un cliente potencial de TechStartup Inc.",
+    "duration_seconds": 120,
+    "language": "es",
+    "scenario": "Llamada de seguimiento con un cliente potencial interesado que descargó un informe técnico"
+  },
+  "segments": [
+    {
+      "speaker": "rep",
+      "text": "Hola Sarah, soy Alex de CloudSync Pro. ¡Gracias por tomarse el tiempo para conversar hoy!",
+      "timestamp": 0.0,
+      "delay_ms": 0
+    },
+    {
+      "speaker": "prospect",
+      "text": "Hola Alex, claro, tengo unos 15 minutos. Descargué su informe técnico sobre la sincronización de archivos empresariales la semana pasada.",
+      "timestamp": 3.0,
+      "delay_ms": 3000
+    },
+    {
+      "speaker": "rep",
+      "text": "¡Excelente, vi eso! Antes de comenzar, me encantaría entender su configuración actual. ¿Qué están utilizando hoy para compartir archivos y colaborar en TechStartup?",
+      "timestamp": 8.0,
+      "delay_ms": 5000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Estamos usando Dropbox Business en este momento. Funciona bien para compartir archivos de forma básica, pero honestamente, nuestro equipo se ha estado quejando de la velocidad de sincronización. Los archivos grandes tardan una eternidad.",
+      "timestamp": 14.0,
+      "delay_ms": 6000
+    },
+    {
+      "speaker": "rep",
+      "text": "Escucho eso a menudo de los equipos que usan Dropbox. ¿Qué tan grande es su equipo actualmente?",
+      "timestamp": 22.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Somos unas 85 personas ahora, y planeamos duplicar el tamaño para fin de año.",
+      "timestamp": 26.0,
+      "delay_ms": 4000
+    },
+    {
+      "speaker": "rep",
+      "text": "¡Vaya, felicitaciones por el crecimiento! A esa escala, el rendimiento de la sincronización se vuelve crítico. Nuestra tecnología delta-sync solo transfiere los bytes modificados, por lo que el tiempo de sincronización promedio es de aproximadamente 0.3 segundos en comparación con los más de 3 segundos con herramientas tradicionales.",
+      "timestamp": 30.0,
+      "delay_ms": 4000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Eso suena impresionante, pero honestamente, evaluamos cambiar de herramientas antes y el precio siempre fue el problema. Somos una startup y el presupuesto es ajustado. ¿Cuánto cuesta realmente CloudSync Pro?",
+      "timestamp": 38.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "rep",
+      "text": "Lo entiendo totalmente. Nuestro plan Profesional cuesta $25 por usuario al mes, lo que incluye almacenamiento ilimitado y todas las funciones empresariales.",
+      "timestamp": 47.0,
+      "delay_ms": 9000
+    },
+    {
+      "speaker": "prospect",
+      "text": "¿Veinticinco dólares por usuario? Eso es definitivamente más de lo que pagamos por Dropbox en este momento. No estoy segura de que nuestro director financiero apruebe ese tipo de aumento.",
+      "timestamp": 53.0,
+      "delay_ms": 6000
+    },
+    {
+      "speaker": "rep",
+      "text": "Entiendo, el precio de lista importa. Pero déjeme compartir algo interesante: la mayoría de nuestros clientes que cambiaron desde Dropbox en realidad terminaron gastando menos en general porque eliminaron dos o tres herramientas que usaban en paralelo, como soluciones de respaldo y cumplimiento independientes. ¿Qué otras herramientas pagan además de Dropbox?",
+      "timestamp": 60.0,
+      "delay_ms": 7000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Bueno, tenemos un servicio de respaldo independiente y recientemente tuvimos que comprar una herramienta de cumplimiento para nuestra auditoría SOC 2. Así que supongo que hay algunos costos ocultos allí.",
+      "timestamp": 70.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Exactamente. CloudSync Pro incluye todo eso: respaldo, control de versiones, informes de cumplimiento y registros de auditoría integrados. Uno de nuestros clientes, RetailMax, eliminó tres herramientas independientes cuando cambió y ahorró $67,000 al año. ¿Sería útil si preparo una comparación de costos específica para su pila de herramientas?",
+      "timestamp": 78.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Sí, eso sería realmente muy útil. Pero debo mencionar que yo no soy quien toma la decisión final sobre esto. Necesitaría presentar esto a nuestro CTO y al vicepresidente de ingeniería.",
+      "timestamp": 88.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Por supuesto, eso tiene total sentido para una decisión como esta. Lo que puedo hacer es preparar un resumen ejecutivo de una página con los números de ROI adaptados a su empresa, además de la comparación de costos. ¿Sería también útil si me uno a una llamada rápida con su CTO para responder directamente a cualquier pregunta técnica?",
+      "timestamp": 96.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Eso podría funcionar. Déjeme revisar su calendario y me pongo en contacto con usted. De hecho, una cosa más: estamos en medio de nuestra certificación SOC 2. ¿Cómo maneja CloudSync Pro la seguridad de los datos y el cumplimiento?",
+      "timestamp": 106.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "Excelente pregunta, y esa es una de nuestras áreas más fuertes. Utilizamos cifrado AES-256 de extremo a extremo con una arquitectura de conocimiento cero. Nosotros mismos estamos certificados en SOC 2 Tipo II, por lo que nuestros informes de cumplimiento pueden respaldar su auditoría. HealthFirst pasó su auditoría HIPAA un 50% más rápido después de implementarnos. ¿Le gustaría que incluya nuestro informe de seguridad en los materiales que envíe?",
+      "timestamp": 114.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "Sí, por favor incluya eso. Esto ha sido realmente muy informativo, Alex. Envíeme esos materiales y los compartiré con el equipo. Planifiquemos volver a conectarnos la próxima semana.",
+      "timestamp": 124.0,
+      "delay_ms": 10000
+    },
+    {
+      "speaker": "rep",
+      "text": "¡Perfecto! Tendré todo en su bandeja de entrada para el final del día de hoy. ¿Qué tal el próximo miércoles a las 2 p.m. para nuestro seguimiento? También puedo configurar una prueba gratuita de 14 días para que su equipo pueda probarlo antes de la reunión.",
+      "timestamp": 132.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "prospect",
+      "text": "El miércoles funciona. Y claro, hagamos la prueba. De esa manera tendremos experiencia práctica para discutir.",
+      "timestamp": 140.0,
+      "delay_ms": 8000
+    },
+    {
+      "speaker": "rep",
+      "text": "¡Excelente! Enviaré el enlace de configuración de la prueba junto con los materiales. Muchas gracias por su tiempo, Sarah. ¡Hablamos el miércoles!",
+      "timestamp": 145.0,
+      "delay_ms": 5000
+    }
+  ]
+}

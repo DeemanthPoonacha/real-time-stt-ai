@@ -37,6 +37,9 @@ export const translations = {
     salesRepRole: "Sales Rep",
     prospectRole: "Prospect",
     speakerRole: "Speaker",
+    salesRepAvatar: "SR",
+    prospectAvatar: "PR",
+    speakerAvatar: "SP",
     micSilent: "Microphone stream is silent",
     micSilentSubtext: "Activate the recording or demo mode to begin transcription",
 
@@ -84,7 +87,13 @@ export const translations = {
     clickToCopyScript: "Click to copy script",
     scriptCopied: "✓ Script Copied",
     clickToCopy: "📋 Click to copy",
-    playbookScope: "Playbook Scope"
+    playbookScope: "Playbook Scope",
+    playbookContext: "Playbook Context",
+    liveMatches: "🎯 Live Matches",
+    speak: "Speak",
+    match: "Match",
+    liveMatch: "Live Match",
+    playbookMatch: "Playbook Match"
   },
   he: {
     // App Header & Layout
@@ -124,6 +133,9 @@ export const translations = {
     salesRepRole: "נציג מכירות",
     prospectRole: "לקוח פוטנציאלי",
     speakerRole: "דובר",
+    salesRepAvatar: "נמ",
+    prospectAvatar: "לק",
+    speakerAvatar: "דב",
     micSilent: "זרם המיקרופון שקט",
     micSilentSubtext: "הפעל את ההקלטה או את מצב הדמו כדי להתחיל בתמלול",
 
@@ -171,14 +183,212 @@ export const translations = {
     clickToCopyScript: "לחץ להעתקת התסריט",
     scriptCopied: "✓ תסריט הועתק",
     clickToCopy: "📋 לחץ להעתקה",
-    playbookScope: "טווח ספר הדרכה"
+    playbookScope: "טווח ספר הדרכה",
+    playbookContext: "מידע מתוכנית המכירות",
+    liveMatches: "🎯 התאמות בזמן אמת",
+    speak: "דבר",
+    match: "התאמה",
+    liveMatch: "התאמה בזמן אמת",
+    playbookMatch: "התאמה לתוכנית"
+  },
+  es: {
+    // App Header & Layout
+    logoSubtitle: "Suite de Habilitación en Tiempo Real",
+    simulationActive: "Simulación TTS Activa",
+    switchToDark: "Cambiar a Tema Oscuro",
+    switchToLight: "Cambiar a Tema Claro",
+    repSpeaking: "Representante de Ventas Hablando",
+    prospectSpeaking: "Cliente Potencial Hablando",
+    phrases: "frases",
+    micError: "Error al acceder al micrófono. Por favor, compruebe los permisos.",
+    micDemoError: "Error al acceder al micrófono. Se requiere acceso al micrófono para capturar la salida del altavoz TTS para la transcripción.",
+
+    // Audio Controls
+    liveStream: "Transmisión en Vivo",
+    idle: "Inactivo",
+    connected: "Conectado",
+    processing: "Procesando",
+    error: "Error",
+    offline: "Desconectado",
+    stopDemo: "⏹ Detener Demo",
+    playDemo: "▶ Reproducir Demo",
+    reset: "Restablecer",
+    stopSession: "Detener Sesión",
+    startMicStream: "Iniciar Micrófono",
+    resetCurrentSession: "Restablecer Sesión Actual",
+
+    // Call Stats
+    callDuration: "Duración de Llamada",
+    transcripts: "Transcripciones",
+    aiCoachTips: "Consejos de AI Coach",
+    objectionsBlocked: "Objeciones Bloqueadas",
+
+    // Live Transcript
+    liveTranscriptTitle: "Transcripción de la Conversación en Vivo",
+    segments: "segmentos",
+    salesRepRole: "Vendedor",
+    prospectRole: "Cliente",
+    speakerRole: "Hablante",
+    salesRepAvatar: "VR",
+    prospectAvatar: "CL",
+    speakerAvatar: "HA",
+    micSilent: "La transmisión del micrófono está en silencio",
+    micSilentSubtext: "Active la grabación o el modo demo para iniciar la transcripción",
+
+    // Coaching Panel
+    copilotTitle: "Copiloto de Ventas AI",
+    analyzingAudio: "Analizando audio",
+    tips: "consejos",
+    coachingIdle: "Motor de Asesoramiento AI Inactivo",
+    coachingIdleSubtext: "Se generarán consejos prácticos y guiones a medida que fluya el diálogo",
+    objectionHandling: "Manejo de Objeciones",
+    coachingTip: "Consejo de Asesoramiento",
+    suggestedScript: "Guion Sugerido",
+    immediateAlert: "Alerta Inmediata",
+    closingOpportunity: "Oportunidad de Cierre",
+    tip: "Consejo",
+    dialogueTalkTrack: "Guion de diálogo",
+    copyTalkTrack: "📋 Copiar Guion",
+    copied: "✓ Copiado",
+    analyzingSpeech: "Analizando discurso...",
+    liveTip: "Consejo en Vivo",
+    liveObjection: "Manejo de Objeciones en Vivo",
+    liveSuggestedScript: "Guion Sugerido en Vivo",
+    liveImmediateAlert: "Alerta Inmediata en Vivo",
+    liveClosingOpportunity: "Oportunidad de Cierre en Vivo",
+
+    // Playbook Sidebar
+    playbookTitle: "Manual de Ventas",
+    searchPlaceholder: "Buscar guiones, precios...",
+    noSectionsFound: "No se encontraron secciones del manual que coincidan con la búsqueda",
+    pricingPlans: "💰 Planes de Precios",
+    openingScripts: "🎬 Guiones de Apertura",
+    valueProps: "✨ Propuestas de Valor",
+    closingTechniques: "🎯 Técnicas de Cierre",
+    competitorTracks: "⚔️ Tarjetas de Batalla",
+    all: "Todo",
+    pricingCategory: "Precios",
+    openingCategory: "Apertura",
+    valueCategory: "Valor",
+    closingCategory: "Cierre",
+    competitorsCategory: "Competidores",
+    clickToCopyPlan: "Haga clic para copiar los detalles del plan",
+    planPlan: "Plan",
+    planCopied: "✓ Plan copiado",
+    copyPlanDetails: "📋 Copiar Detalles del Plan",
+    clickToCopyScript: "Haga clic para copiar el guion",
+    scriptCopied: "✓ Guion Copiado",
+    clickToCopy: "📋 Copiar",
+    playbookScope: "Alcance del Manual",
+    playbookContext: "Contexto del Manual",
+    liveMatches: "🎯 Coincidencias en Vivo",
+    speak: "Hablar",
+    match: "Coincidencia",
+    liveMatch: "Coincidencia en Vivo",
+    playbookMatch: "Coincidencia del Manual"
+  },
+  fr: {
+    // App Header & Layout
+    logoSubtitle: "Suite d'Activation en Temps Réel",
+    simulationActive: "Simulation TTS Active",
+    switchToDark: "Passer au Thème Sombre",
+    switchToLight: "Passer au Thème Clair",
+    repSpeaking: "Représentant Commercial Parle",
+    prospectSpeaking: "Prospect Parle",
+    phrases: "phrases",
+    micError: "Impossible d'accéder au micro. Veuillez vérifier les autorisations.",
+    micDemoError: "Impossible d'accéder au micro. L'accès au micro est requis pour capturer la sortie du haut-parleur TTS pour la transcription.",
+
+    // Audio Controls
+    liveStream: "Flux en Direct",
+    idle: "En attente",
+    connected: "Connecté",
+    processing: "Traitement",
+    error: "Erreur",
+    offline: "Hors ligne",
+    stopDemo: "⏹ Arrêter la Démo",
+    playDemo: "▶ Lancer la Démo",
+    reset: "Réinitialiser",
+    stopSession: "Arrêter la Session",
+    startMicStream: "Démarrer le Micro",
+    resetCurrentSession: "Réinitialiser la Session Actuelle",
+
+    // Call Stats
+    callDuration: "Durée de l'Appel",
+    transcripts: "Transcriptions",
+    aiCoachTips: "Conseils d'AI Coach",
+    objectionsBlocked: "Objections Bloquées",
+
+    // Live Transcript
+    liveTranscriptTitle: "Transcription de la Conversation en Direct",
+    segments: "segments",
+    salesRepRole: "Vendeur",
+    prospectRole: "Prospect",
+    speakerRole: "Orateur",
+    salesRepAvatar: "VR",
+    prospectAvatar: "CL",
+    speakerAvatar: "OR",
+    micSilent: "Le flux du microphone est silencieux",
+    micSilentSubtext: "Activez l'enregistrement ou le mode démo pour commencer la transcription",
+
+    // Coaching Panel
+    copilotTitle: "Copilote de Vente AI",
+    analyzingAudio: "Analyse audio",
+    tips: "conseils",
+    coachingIdle: "Moteur de Coaching AI en Attente",
+    coachingIdleSubtext: "Des conseils et des scripts exploitables apparaîtront au fil de la discussion",
+    objectionHandling: "Traitement des Objections",
+    coachingTip: "Conseil de Coaching",
+    suggestedScript: "Script Suggéré",
+    immediateAlert: "Alerte Immédiate",
+    closingOpportunity: "Opportunité de Clôture",
+    tip: "Conseil",
+    dialogueTalkTrack: "Script de dialogue",
+    copyTalkTrack: "📋 Copier le Script",
+    copied: "✓ Copié",
+    analyzingSpeech: "Analyse de la parole...",
+    liveTip: "Conseil en Direct",
+    liveObjection: "Traitement des Objections en Direct",
+    liveSuggestedScript: "Script Suggéré en Direct",
+    liveImmediateAlert: "Alerte Immédiate en Direct",
+    liveClosingOpportunity: "Opportunité de Clôture en Direct",
+
+    // Playbook Sidebar
+    playbookTitle: "Playbook de Vente",
+    searchPlaceholder: "Rechercher des scripts, prix...",
+    noSectionsFound: "Aucune section du playbook ne correspond aux critères",
+    pricingPlans: "💰 Plans Tarifaires",
+    openingScripts: "🎬 Scripts d'Ouverture",
+    valueProps: "✨ Propositions de Valeur",
+    closingTechniques: "🎯 Techniques de Clôture",
+    competitorTracks: "⚔️ Fiches Concurrents",
+    all: "Tout",
+    pricingCategory: "Tarifs",
+    openingCategory: "Ouverture",
+    valueCategory: "Valeur",
+    closingCategory: "Clôture",
+    competitorsCategory: "Concurrents",
+    clickToCopyPlan: "Cliquez pour copier les détails du plan",
+    planPlan: "Plan",
+    planCopied: "✓ Plan copié",
+    copyPlanDetails: "📋 Copier les Détails du Plan",
+    clickToCopyScript: "Cliquez pour copier le script",
+    scriptCopied: "✓ Script Copié",
+    clickToCopy: "📋 Copier",
+    playbookScope: "Portée du Playbook",
+    playbookContext: "Contexte du Playbook",
+    liveMatches: "🎯 Correspondances en Direct",
+    speak: "Parler",
+    match: "Correspondance",
+    liveMatch: "Correspondance en Direct",
+    playbookMatch: "Correspondance du Playbook"
   }
 };
 
 export type TranslationKey = keyof typeof translations.en;
-export type Language = 'en' | 'he' | string;
+export type Language = 'en' | 'he' | 'es' | 'fr' | string;
 
 export function t(key: TranslationKey, lang: Language): string {
-  const selectedLang = lang === 'he' ? 'he' : 'en';
-  return translations[selectedLang][key] || translations.en[key] || '';
+  const selectedLang = ['he', 'es', 'fr'].includes(lang) ? lang : 'en';
+  return (translations as any)[selectedLang]?.[key] || translations.en[key] || '';
 }

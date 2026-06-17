@@ -1,0 +1,196 @@
+{
+  "product": {
+    "name": "CloudSync Pro",
+    "tagline": "Synchronisation et collaboration de fichiers d'entreprise, simplifiées.",
+    "category": "SaaS d'Entreprise - Stockage Cloud & Collaboration",
+    "website": "https://cloudsyncpro.example.com"
+  },
+  "pricing": {
+    "starter": {
+      "price": "$12/utilisateur/mois",
+      "features": ["50 Go de stockage par utilisateur", "Synchronisation de fichiers de base", "Applications mobiles", "Support par e-mail"],
+      "best_for": "Petites équipes (5-25 utilisateurs)"
+    },
+    "professional": {
+      "price": "$25/utilisateur/mois",
+      "features": ["Stockage illimité", "Collaboration avancée", "Contrôles d'administration", "Support prioritaire", "Accès API", "Intégration SSO"],
+      "best_for": "Entreprises en croissance (25-200 utilisateurs)"
+    },
+    "enterprise": {
+      "price": "Tarifs personnalisés",
+      "features": ["Tout ce qui est dans Professional", "Responsable de compte dédié", "Intégrations personnalisées", "Garanties de SLA", "Option sur site (On-premise)", "Analyses avancées"],
+      "best_for": "Grandes organisations (plus de 200 utilisateurs)"
+    }
+  },
+  "opening_scripts": [
+    {
+      "scenario": "Appel à froid - premier contact",
+      "script": "Bonjour [Name], je suis [Rep Name] de CloudSync Pro. J'ai remarqué que votre entreprise s'est récemment agrandie pour atteindre [X] employés — félicitations ! Je vous contacte car les entreprises à votre stade de croissance se heurtent souvent à un mur concernant le partage de fichiers et la collaboration. Auriez-vous 2 minutes pour que je vous explique comment nous avons aidé des entreprises similaires comme [reference] à gagner 15 heures par semaine sur la gestion des fichiers ?",
+      "key_points": ["Personnaliser avec des recherches sur l'entreprise", "Mettre en avant la valeur, pas les fonctionnalités", "Demander un engagement de temps spécifique"]
+    },
+    {
+      "scenario": "Prospect qualifié - demande entrante",
+      "script": "Bonjour [Name], merci d'avoir contacté CloudSync Pro ! J'ai vu que vous vous intéressiez à notre [specific plan/feature]. Avant de commencer, j'aimerais comprendre votre configuration actuelle : qu'utilisez-vous aujourd'hui pour le partage de fichiers et la collaboration, et quel est votre plus grand problème ?",
+      "key_points": ["Reconnaître leur intérêt", "Poser des questions de découverte", "Comprendre les points de douleur d'abord"]
+    },
+    {
+      "scenario": "Appel de suivi",
+      "script": "Bonjour [Name], c'est [Rep Name] de CloudSync Pro. La dernière fois que nous avons parlé, vous avez mentionné [specific pain point]. Je voulais partager une brève étude de cas de [similar company] qui a rencontré exactement le même défi : ils ont réduit de 90% leurs problèmes de synchronisation au cours du premier mois. Souhaitez-vous savoir comment ils ont procédé ?",
+      "key_points": ["Faire référence à la conversation précédente", "Utiliser la preuve sociale", "Mettre en avant les résultats"]
+    },
+    {
+      "scenario": "Suivi après démo",
+      "script": "Bonjour [Name], superbe démonstration hier ! Je voulais faire le suivi sur la fonctionnalité [specific feature] qui vous a enthousiasmé. J'ai également préparé une analyse de ROI personnalisée basée sur la taille de votre équipe de [X] — elle montre des économies potentielles de $[Y] par an. Souhaitez-vous que je vous la présente ?",
+      "key_points": ["Faire référence à des moments spécifiques de la démo", "Fournir une valeur personnalisée", "Créer un sentiment d'urgence avec le ROI"]
+    }
+  ],
+  "qualification_questions": [
+    {
+      "category": "Budget",
+      "questions": [
+        "Quel est votre budget actuel pour le stockage de fichiers et les outils de collaboration ?",
+        "Avez-vous un budget alloué pour améliorer l'infrastructure de collaboration de votre équipe ?",
+        "Si nous pouvions prouver un ROI de 3x, seriez-vous en mesure d'approuver cet investissement ?"
+      ]
+    },
+    {
+      "category": "Autorité",
+      "questions": [
+        "Qui d'autre dans votre équipe serait impliqué dans l'évaluation d'une solution de ce type ?",
+        "À quoi ressemble généralement le processus de prise de décision pour les outils logiciels dans votre entreprise ?",
+        "Serait-il utile d'inclure votre responsable informatique ou votre CTO dans notre prochaine conversation ?"
+      ]
+    },
+    {
+      "category": "Besoin",
+      "questions": [
+        "Comment gérez-vous le partage de fichiers entre les équipes aujourd'hui ?",
+        "Que se passe-t-il lorsque des membres de l'équipe doivent collaborer sur le même document ?",
+        "Avez-vous déjà rencontré des pertes de données ou des problèmes de contrôle de version ?"
+      ]
+    },
+    {
+      "category": "Calendrier",
+      "questions": [
+        "Y a-t-il une date limite ou un événement spécifique qui motive cette évaluation ?",
+        "Dans combien de temps auriez-vous besoin de mettre en place une solution ?",
+        "Évaluez-vous d'autres solutions en parallèle ?"
+      ]
+    }
+  ],
+  "value_propositions": [
+    {
+      "category": "Vitesse & Performance",
+      "headline": "Synchronisation de fichiers 10x plus rapide",
+      "detail": "Notre technologie de delta-sync ne transfère que les octets modifiés, pas les fichiers entiers. Temps de synchronisation moyen : 0,3 seconde contre plus de 3 secondes pour la moyenne du marché.",
+      "proof_point": "TechCorp a réduit de 94% le temps d'attente pour la synchronisation des fichiers après être passé de Dropbox Business.",
+      "when_to_use": "Lorsque le prospect mentionne une synchronisation lente, une perte de productivité ou de la frustration face à la vitesse de leur outil actuel."
+    },
+    {
+      "category": "Sécurité & Conformité",
+      "headline": "Sécurité de niveau bancaire, intégrée d'office",
+      "detail": "Chiffrement de bout en bout (AES-256), certifié SOC 2 Type II, conforme au RGPD, compatible HIPAA. L'architecture zero-knowledge garantit que nous ne pouvons pas voir vos fichiers, même si nous le voulions.",
+      "proof_point": "HealthFirst, un prestataire de santé de plus de 500 employés, a passé son audit HIPAA deux fois plus vite après avoir implémenté CloudSync Pro.",
+      "when_to_use": "Lorsque le prospect mentionne des préoccupations de sécurité, des exigences réglementaires ou appartient à un secteur réglementé."
+    },
+    {
+      "category": "Intégration",
+      "headline": "Fonctionne avec tous vos outils actuels",
+      "detail": "Intégrations natives avec Slack, Microsoft Teams, Jira, Salesforce et plus de 200 autres outils via API. Aucune interruption de flux de travail.",
+      "proof_point": "DesignStudio a connecté CloudSync Pro à son flux de travail Figma + Slack existant en moins de 30 minutes.",
+      "when_to_use": "Lorsque le prospect s'inquiète des coûts de changement d'outil ou de la complexité de l'intégration."
+    },
+    {
+      "category": "Économies",
+      "headline": "Économisez plus de $45K/an pour une équipe de 100 personnes",
+      "detail": "Regroupe 3 à 4 outils distincts (partage de fichiers, collaboration, sauvegarde, conformité) sur une seule plateforme. En moyenne, nos clients économisent 40% sur le coût total de leur suite collaborative.",
+      "proof_point": "RetailMax a éliminé Dropbox, WeTransfer et une solution de sauvegarde distincte, économisant $67K par an.",
+      "when_to_use": "Lorsque le prospect mentionne des contraintes budgétaires ou des abonnements à plusieurs outils."
+    }
+  ],
+  "closing_techniques": [
+    {
+      "name": "La clôture d'essai",
+      "script": "En nous basant sur tout ce dont nous avons discuté, je pense que le plan Professional serait la solution idéale. Nous proposons un essai gratuit de 14 jours avec toutes les fonctionnalités — aucune carte de crédit requise. Souhaitez-vous que je configure cela pour votre équipe aujourd'hui ?",
+      "when_to_use": "Lorsque le prospect est intéressé mais ne s'est pas encore engagé.",
+      "follow_up": "Je vous enverrai le lien d'essai juste après cet appel, ainsi qu'un guide de démarrage rapide. Pouvons-nous planifier un point de 15 minutes mardi prochain pour voir comment cela se passe ?"
+    },
+    {
+      "name": "La clôture par le ROI",
+      "script": "Vous avez mentionné que votre équipe consacre environ [X heures] par semaine aux problèmes de gestion des fichiers. Au tarif horaire moyen de votre équipe, cela représente environ $[Y] par mois en perte de productivité. CloudSync Pro vous coûterait $[Z] par mois — vous économiseriez donc $[Y-Z] chaque mois, dès le premier jour. Est-ce que ce calcul vous paraît pertinent pour avancer ?",
+      "when_to_use": "Lorsque le prospect est sensible au prix mais a reconnu les difficultés.",
+      "follow_up": "Je peux vous envoyer un tableau de calcul de ROI personnalisé pour la taille de votre équipe. Est-ce que cela vous aiderait à présenter le projet à votre direction ?"
+    },
+    {
+      "name": "La clôture par l'urgence",
+      "script": "Je dois vous préciser — nous proposons ce mois-ci notre promotion annuelle vous permettant de bénéficier de 20% de réduction pour la première année. Cela se termine le [date]. Si nous lançons le projet avant cette date, vous économiserez $[amount] supplémentaires sur l'année.",
+      "when_to_use": "Lorsque le prospect est intéressé mais repousse sa décision.",
+      "follow_up": "Même si vous lancez l'essai maintenant, vous pourrez toujours basculer sur l'offre payante avant la fin de la promotion. Souhaitez-vous que je vous réserve ce tarif ?"
+    },
+    {
+      "name": "La clôture présumée",
+      "script": "Super, il semble que CloudSync Pro coche toutes vos cases. Permettez-moi de vous expliquer le processus de déploiement — cela prend généralement environ 48 heures pour une équipe de votre taille. Est-ce que lundi ou mercredi conviendrait le mieux pour le lancement de votre équipe ?",
+      "when_to_use": "Lorsque le prospect a donné plusieurs signaux d'achat et semble prêt.",
+      "follow_up": "Je vais préparer un plan de déploiement personnalisé pour votre équipe et vous l'envoyer aujourd'hui."
+    }
+  ],
+  "competitor_comparisons": [
+    {
+      "competitor": "Dropbox Business",
+      "our_advantages": [
+        "Synchronisation 10x plus rapide grâce à la technologie delta-sync",
+        "Meilleurs contrôles administrateur et journaux d'audit",
+        "Coût réduit à grande échelle (30% d'économie pour plus de 100 utilisateurs)",
+        "Outils de conformité intégrés (SOC 2, HIPAA, GDPR)"
+      ],
+      "their_advantages": [
+        "Notoriété de marque plus forte",
+        "Base d'utilisateurs grand public plus importante (adoption initiale plus simple)"
+      ],
+      "talk_track": "Dropbox est parfait pour un usage personnel, mais lorsque les équipes dépassent 50 personnes, elles se heurtent souvent à des limites concernant les contrôles d'administration, la conformité et les performances de synchronisation. C'est précisément là que CloudSync Pro brille : nous avons été conçus dès le départ pour les équipes d'entreprise."
+    },
+    {
+      "competitor": "SharePoint / OneDrive",
+      "our_advantages": [
+        "Déploiement considérablement plus simple (quelques heures contre plusieurs semaines)",
+        "Fonctionne en dehors de l'écosystème Microsoft",
+        "Meilleure expérience mobile",
+        "Aucun administrateur informatique requis pour la configuration de base"
+      ],
+      "their_advantages": [
+        "Intégration poussée avec Microsoft 365",
+        "Déjà inclus dans les licences Microsoft d'entreprise"
+      ],
+      "talk_track": "SharePoint est puissant mais complexe. De nombreux clients qui possèdent déjà SharePoint nous disent que leurs équipes ne l'utilisent pas vraiment car il est trop compliqué. CloudSync Pro vous offre les mêmes fonctionnalités avec une courbe d'apprentissage de quelques minutes, pas de plusieurs mois."
+    },
+    {
+      "competitor": "Box",
+      "our_advantages": [
+        "Interface utilisateur (UI/UX) plus intuitive",
+        "Synchronisation plus rapide des fichiers",
+        "Tarifs plus compétitifs",
+        "Meilleures fonctionnalités de collaboration en temps réel"
+      ],
+      "their_advantages": [
+        "Présence commerciale plus forte sur le segment des grands comptes",
+        "Davantage d'intégrations de gouvernance tierces"
+      ],
+      "talk_track": "Box est une plateforme solide, notamment pour les secteurs très réglementés. Cependant, nos clients qui sont passés de Box à notre solution soulignent constamment deux choses : CloudSync Pro est plus rapide et leurs équipes aiment vraiment l'utiliser. L'adoption par les utilisateurs est souvent le principal défi pour ces outils."
+    },
+    {
+      "competitor": "Google Drive / Workspace",
+      "our_advantages": [
+        "Architecture offline-first (fonctionne sans internet)",
+        "Meilleur versioning et récupération de fichiers",
+        "Meilleurs contrôles de conformité et de localisation des données",
+        "Pas de dépendance envers des formats de fichiers propriétaires"
+      ],
+      "their_advantages": [
+        "Excellente collaboration de documents en temps réel (Google Docs)",
+        "Coût moindre pour les petites équipes",
+        "Messagerie et calendrier intégrés"
+      ],
+      "talk_track": "Google Workspace est idéal pour l'édition de documents en temps réel, et nous l'intégrons parfaitement. Là où CloudSync Pro apporte de la valeur, c'est pour les équipes qui ont besoin d'un accès hors ligne robuste, d'une conformité de niveau entreprise et de la capacité de travailler avec tout type de fichier — pas seulement les formats de Google."
+    }
+  ]
+}

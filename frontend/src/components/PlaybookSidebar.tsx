@@ -51,6 +51,7 @@ interface PlaybookSection {
  * Supports keyword search, category quick-filter chips, and stateful copying.
  */
 export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs = [], onSpeakScript }: { language?: string; activeRetrievedDocs?: any[]; onSpeakScript?: (script: string) => void }) {
+  const isPlanFirst = ['he', 'es', 'fr'].includes(language);
   const [playbook, setPlaybook] = useState<PlaybookData | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ pricing: true });
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -159,7 +160,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
   }
 
   const sections: PlaybookSection[] = [
-    { key: 'pricing', title: t('pricingPlans', language), items: playbook.pricing ? Object.entries(playbook.pricing).map(([k, v]) => ({ label: language === 'he' ? `${t('planPlan', language)} ${k}: ${v.price}` : `${k}: ${v.price}`, detail: v.features?.join(', ') || '' })) : [] },
+    { key: 'pricing', title: t('pricingPlans', language), items: playbook.pricing ? Object.entries(playbook.pricing).map(([k, v]) => ({ label: isPlanFirst ? `${t('planPlan', language)} ${k}: ${v.price}` : `${k}: ${v.price}`, detail: v.features?.join(', ') || '' })) : [] },
     { key: 'opening', title: t('openingScripts', language), items: playbook.opening_scripts?.map(s => ({ label: s.scenario, detail: s.script })) || [] },
     { key: 'value', title: t('valueProps', language), items: playbook.value_propositions?.map(v => ({ label: v.headline, detail: v.detail })) || [] },
     { key: 'closing', title: t('closingTechniques', language), items: playbook.closing_techniques?.map(c => ({ label: c.name, detail: c.script })) || [] },
@@ -183,7 +184,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
         });
 
         if (!alreadyExists) {
-          let label = doc.section || (language === 'he' ? 'מידע מתוכנית המכירות' : 'Playbook Context');
+          let label = doc.section || t('playbookContext', language);
           let detail = doc.text;
 
           if (doc.text.includes('\n')) {
@@ -226,7 +227,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
   const finalSections = [...dynamicSections];
   if (activeRetrievedDocs && activeRetrievedDocs.length > 0) {
     const matchItems = activeRetrievedDocs.map(doc => {
-      let label = doc.section || (language === 'he' ? 'מידע מתוכנית המכירות' : 'Playbook Context');
+      let label = doc.section || t('playbookContext', language);
       let detail = doc.text;
       
       if (doc.text.includes('\n')) {
@@ -256,7 +257,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
 
     finalSections.unshift({
       key: 'matches',
-      title: language === 'he' ? '🎯 התאמות בזמן אמת' : '🎯 Live Matches',
+      title: t('liveMatches', language),
       items: matchItems
     });
   }
@@ -287,10 +288,10 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
   return (
     <div className="glass-card flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4.5 border-b border-[--color-border] bg-white/[0.01] space-y-3.5 flex-shrink-0">
+      <div className="px-4 py-4 border-b border-border bg-white/[0.01] space-y-3.5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <span className="text-base">📖</span>
-          <h2 className="text-xs font-bold text-[--color-text-primary] uppercase tracking-wider">
+          <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">
             {t('playbookTitle', language)}
           </h2>
         </div>
@@ -303,9 +304,9 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
             placeholder={t('searchPlaceholder', language)}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-[--color-bg-secondary] border border-[--color-border] rounded-xl pl-9 pr-3 py-2 text-xs text-[--color-text-primary] placeholder-[--color-text-muted] outline-none focus:border-[--color-accent-blue] focus:ring-1 focus:ring-[--color-accent-blue-glow] transition-all duration-300 bg-opacity-70"
+            className="w-full bg-bg-secondary border border-border rounded-xl pl-9 pr-3 py-2 text-xs text-text-primary placeholder-text-secondary outline-none focus:border-accent-blue focus:ring-1 focus:ring-accent-blue-glow transition-all duration-300 bg-opacity-70"
           />
-          <svg className="absolute left-3 top-2.5 text-[--color-text-muted] w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+          <svg className="absolute left-3 top-2.5 text-text-secondary w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -331,9 +332,9 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
       </div>
 
       {/* Accordion List Content */}
-      <div className="flex-grow overflow-y-auto p-3.5 space-y-2">
+      <div className="flex-grow overflow-y-auto p-4 space-y-2 soft-edge-fade">
         {filteredSections.length === 0 ? (
-          <div className="text-center py-12 text-[--color-text-muted] text-xs">
+          <div className="text-center py-12 text-text-secondary text-xs">
             {t('noSectionsFound', language)}
           </div>
         ) : (
@@ -343,13 +344,13 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                 onClick={() => toggleSection(section.key)}
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs font-bold transition-all duration-300 cursor-pointer ${
                   expandedSections[section.key]
-                    ? 'text-[--color-text-primary] bg-white/[0.03]'
-                    : 'text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-white/[0.02]'
+                    ? 'text-text-primary bg-white/[0.03]'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-white/[0.02]'
                 }`}
               >
                 <span>{section.title}</span>
-                <span className={`text-[10px] text-[--color-text-muted] transition-transform duration-300 ${
-                  expandedSections[section.key] ? 'rotate-180 text-[--color-accent-blue]' : ''
+                <span className={`text-[10px] text-text-muted transition-transform duration-300 ${
+                  expandedSections[section.key] ? 'rotate-180 text-accent-blue' : ''
                 }`}>
                   ▼
                 </span>
@@ -370,23 +371,23 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                           key={i}
                           className={`group p-3.5 rounded-xl transition-all duration-200 cursor-pointer border ${
                             isMatched
-                              ? 'bg-[rgba(99,102,241,0.08)] border-[--color-accent-blue]/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
-                              : 'bg-white/[0.005] border-white/[0.02] hover:bg-white/[0.02] hover:border-[--color-border]'
+                              ? 'playbook-match-pulse'
+                              : 'bg-white/[0.005] border-white/[0.02] hover:bg-white/[0.02] hover:border-border'
                           }`}
                           onClick={() => copyText(`${name}: ${price} (${item.detail})`, uniqueKey)}
                           title={t('clickToCopyPlan', language)}
                         >
                           <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-[10px] uppercase tracking-wider text-[--color-accent-blue]">
-                                {language === 'he' ? `${t('planPlan', language)} ${name}` : `${name} ${t('planPlan', language)}`}
-                              </span>
-                              {isMatched && (
-                                <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[--color-accent-blue]/20 border border-[--color-accent-blue]/35 text-[--color-text-primary] animate-pulse">
-                                  {language === 'he' ? 'התאמה' : 'Match'}
-                                </span>
-                              )}
-                            </div>
+                             <div className="flex items-center gap-2">
+                               <span className="font-extrabold text-[10px] uppercase tracking-wider text-accent-blue">
+                                 {isPlanFirst ? `${t('planPlan', language)} ${name}` : `${name} ${t('planPlan', language)}`}
+                               </span>
+                               {isMatched && (
+                                 <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-blue/20 border border-accent-blue/35 text-text-primary animate-pulse">
+                                   {t('match', language)}
+                                 </span>
+                               )}
+                             </div>
                             <span className="font-mono text-xs font-bold text-white bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
                               {price}
                             </span>
@@ -395,7 +396,7 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                           {/* Features */}
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {item.detail.split(',').map((feat, fi) => (
-                              <span key={fi} className="text-[9px] text-[--color-text-secondary] bg-white/[0.015] px-2 py-0.5 rounded-full border border-white/[0.02] font-medium">
+                              <span key={fi} className="text-[9px] text-text-secondary bg-white/[0.015] px-2 py-0.5 rounded-full border border-white/[0.02] font-medium">
                                 ✓ {feat.trim()}
                               </span>
                             ))}
@@ -404,8 +405,8 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                           <div className="mt-2.5 pt-2 border-t border-white/[0.02] flex items-center justify-between">
                             <span className={`text-[9px] font-extrabold uppercase tracking-wide transition-all duration-200 ${
                               copiedItemKey === uniqueKey
-                                ? 'text-[--color-accent-emerald] opacity-100'
-                                : 'text-[--color-accent-blue] opacity-0 group-hover:opacity-100'
+                                ? 'text-accent-emerald opacity-100'
+                                : 'text-accent-blue opacity-0 group-hover:opacity-100'
                             }`}>
                               {copiedItemKey === uniqueKey ? t('planCopied', language) : t('copyPlanDetails', language)}
                             </span>
@@ -416,16 +417,20 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                                   onSpeakScript(
                                     language === 'he'
                                       ? `תוכנית ${name} עולה ${price} וכוללת ${item.detail}`
+                                      : language === 'es'
+                                      ? `El plan ${name} cuesta ${price} e incluye ${item.detail}`
+                                      : language === 'fr'
+                                      ? `Le plan ${name} coûte ${price} et comprend ${item.detail}`
                                       : `${name} plan is ${price} and includes ${item.detail}`
                                   );
                                 }}
-                                className="flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-[--color-text-primary] transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100"
-                                title={language === 'he' ? 'דבר' : 'Speak'}
+                                className="flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-text-primary transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100"
+                                title={t('speak', language)}
                               >
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-0.5">
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue mr-0.5">
                                   <polygon points="5 3 19 12 5 21 5 3" />
                                 </svg>
-                                <span>{language === 'he' ? 'דבר' : 'Speak'}</span>
+                                <span>{t('speak', language)}</span>
                               </button>
                             )}
                           </div>
@@ -441,32 +446,32 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                           key={i}
                           className={`group p-3 rounded-xl border transition-all duration-200 cursor-pointer relative ${
                             isMatched
-                              ? 'bg-[rgba(99,102,241,0.08)] border-[--color-accent-blue]/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
-                              : 'border-transparent hover:border-[--color-border] bg-white/[0.005] hover:bg-white/[0.02]'
+                              ? 'playbook-match-pulse'
+                              : 'border-transparent hover:border-border bg-white/[0.005] hover:bg-white/[0.02]'
                           }`}
                           onClick={() => copyText(item.detail, uniqueKey)}
                           title={t('clickToCopyScript', language)}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs font-bold text-[--color-text-primary] mb-0">
+                            <p className="text-xs font-bold text-text-primary mb-0">
                               {item.label}
                             </p>
                             {isMatched && (
-                              <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[--color-accent-blue]/20 border border-[--color-accent-blue]/35 text-[--color-text-primary] animate-pulse">
+                              <span className="text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-blue/20 border border-accent-blue/35 text-text-primary animate-pulse">
                                 {section.key === 'matches'
-                                  ? (language === 'he' ? 'התאמה בזמן אמת' : 'Live Match')
-                                  : (language === 'he' ? 'התאמה לתוכנית' : 'Playbook Match')}
+                                  ? t('liveMatch', language)
+                                  : t('playbookMatch', language)}
                               </span>
                             )}
                           </div>
-                          <p className="border-l pl-2 text-sm text-[--color-text-secondary] leading-relaxed">
+                          <p className="border-l pl-2 text-sm text-text-secondary leading-relaxed">
                             {item.detail}
                           </p>
                           <div className="mt-2.5 flex items-center justify-between">
                             <span className={`text-[9px] font-extrabold uppercase tracking-wide transition-all duration-200 ${
                               copiedItemKey === uniqueKey
-                                ? 'text-[--color-accent-emerald] opacity-100'
-                                : 'text-[--color-accent-blue] opacity-0 group-hover:opacity-100'
+                                ? 'text-accent-emerald opacity-100'
+                                : 'text-accent-blue opacity-0 group-hover:opacity-100'
                             }`}>
                               {copiedItemKey === uniqueKey ? t('scriptCopied', language) : t('clickToCopy', language)}
                             </span>
@@ -476,13 +481,13 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
                                   e.stopPropagation();
                                   onSpeakScript(item.detail);
                                 }}
-                                className="flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-[--color-text-primary] transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100"
-                                title={language === 'he' ? 'דבר' : 'Speak'}
+                                className="flex items-center gap-1 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-text-primary transition-all duration-200 cursor-pointer opacity-0 group-hover:opacity-100"
+                                title={t('speak', language)}
                               >
-                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-0.5">
+                                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue mr-0.5">
                                   <polygon points="5 3 19 12 5 21 5 3" />
                                 </svg>
-                                <span>{language === 'he' ? 'דבר' : 'Speak'}</span>
+                                <span>{t('speak', language)}</span>
                               </button>
                             )}
                           </div>
@@ -499,13 +504,13 @@ export default function PlaybookSidebar({ language = 'en', activeRetrievedDocs =
 
       {/* Footer Playbook Meta */}
       {playbook.product && (
-        <div className="px-5 py-3.5 border-t border-[--color-border] bg-white/[0.01] flex items-center justify-between flex-shrink-0">
+        <div className="px-5 py-3.5 border-t border-border bg-white/[0.01] flex items-center justify-between flex-shrink-0">
           <div>
-            <p className="text-[8px] text-[--color-text-muted] uppercase tracking-widest font-extrabold">
+            <p className="text-[8px] text-text-muted uppercase tracking-widest font-extrabold">
               {t('playbookScope', language)}
             </p>
-            <p className="text-xs font-bold text-[--color-text-primary] mt-0.5">{playbook.product.name}</p>
-            <p className="text-[10px] text-[--color-text-muted] mt-0.5 font-medium">{playbook.product.tagline}</p>
+            <p className="text-xs font-bold text-text-primary mt-0.5">{playbook.product.name}</p>
+            <p className="text-[10px] text-text-muted mt-0.5 font-medium">{playbook.product.tagline}</p>
           </div>
           <span className="text-lg animate-pulse">⚡</span>
         </div>

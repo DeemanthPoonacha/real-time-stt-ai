@@ -88,6 +88,38 @@ Example of Hebrew output:
   "script": "אני מבין לחלוטין שתקציב הוא פקטור מרכזי..."
 }
 """
+        elif language == "es":
+            prompt += """
+
+## LANGUAGE RULE
+The call is in Spanish. You MUST write all the values in the JSON output in SPANISH (specifically `title`, `suggestion`, and `script`).
+Keep the JSON keys exactly in English: "type", "priority", "title", "suggestion", "script".
+The "type" and "priority" values must remain in English (e.g. "objection", "high").
+Example of Spanish output:
+{
+  "type": "objection",
+  "priority": "high",
+  "title": "Manejo de objeciones: Precio",
+  "suggestion": "El cliente está preocupado por el precio. Explique el ROI y la reducción de costos de IT.",
+  "script": "Entiendo perfectamente que el presupuesto es un factor clave..."
+}
+"""
+        elif language == "fr":
+            prompt += """
+
+## LANGUAGE RULE
+The call is in French. You MUST write all the values in the JSON output in FRENCH (specifically `title`, `suggestion`, and `script`).
+Keep the JSON keys exactly in English: "type", "priority", "title", "suggestion", "script".
+The "type" and "priority" values must remain in English (e.g. "objection", "high").
+Example of French output:
+{
+  "type": "objection",
+  "priority": "high",
+  "title": "Gestion des objections: Prix",
+  "suggestion": "Le prospect s'inquiète du prix. Expliquez le ROI et la réduction des coûts informatiques.",
+  "script": "Je comprends tout à fait que le budget soit un facteur clé..."
+}
+"""
         return prompt
 
     def _get_conversation_context(self) -> str:
@@ -213,7 +245,14 @@ Example of Hebrew output:
                 
                 if source_type == "objection":
                     lines = best_match["text"].split("\n")
-                    category = "Objection Handling" if language != "he" else "טיפול בהתנגדות"
+                    if language == "he":
+                        category = "טיפול בהתנגדות"
+                    elif language == "es":
+                        category = "Manejo de objeciones"
+                    elif language == "fr":
+                        category = "Gestion des objections"
+                    else:
+                        category = "Objection Handling"
                     response = ""
                     for line in lines:
                         if line.startswith("Category:"):
@@ -231,17 +270,36 @@ Example of Hebrew output:
                     if not response:
                         response = best_match["text"]
                         
+                    title_prefix = "Handle Objection"
+                    suggestion_text = f"The prospect raised concern about {category.lower()}. Reframe using the playbook track."
+                    if language == "he":
+                        title_prefix = "טיפול בהתנגדות"
+                        suggestion_text = f"הלקוח העלה התנגדות לגבי {category}. מסגר מחדש לפי תוכנית העבודה."
+                    elif language == "es":
+                        title_prefix = "Manejo de objeciones"
+                        suggestion_text = f"El cliente planteó una preocupación sobre {category.lower()}. Reformule usando la guía del playbook."
+                    elif language == "fr":
+                        title_prefix = "Gestion d'objection"
+                        suggestion_text = f"Le prospect a soulevé une préoccupation concernant {category.lower()}. Reformulez en utilisant le playbook."
+
                     return json.dumps({
                         "type": "objection",
                         "priority": "high",
-                        "title": f"Handle Objection: {category}" if language != "he" else f"טיפול בהתנגדות: {category}",
-                        "suggestion": f"The prospect raised concern about {category.lower()}. Reframe using the playbook track." if language != "he" else f"הלקוח העלה התנגדות לגבי {category}. מסגר מחדש לפי תוכנית העבודה.",
+                        "title": f"{title_prefix}: {category}",
+                        "suggestion": suggestion_text,
                         "script": response
                     }, indent=2, ensure_ascii=False)
                 
                 # Playbook/Knowledge tip
                 lines = best_match["text"].split("\n")
-                title = "Playbook Tip" if language != "he" else "טיפ מתוכנית המכירות"
+                title = "Playbook Tip"
+                if language == "he":
+                    title = "טיפ מתוכנית המכירות"
+                elif language == "es":
+                    title = "Consejo del Playbook"
+                elif language == "fr":
+                    title = "Conseil du Playbook"
+                
                 detail = best_match["text"]
                 for line in lines:
                     if line.startswith("Headline:") or line.startswith("Name:") or line.startswith("Scenario:"):
@@ -253,11 +311,19 @@ Example of Hebrew output:
                     elif line.startswith("detail:") or line.startswith("script:") or line.startswith("talk_track:"):
                         detail = line.split(":", 1)[1].strip()
                 
+                suggestion_text = f"Relevant playbook reference from {source}."
+                if language == "he":
+                    suggestion_text = f"התייחסות רלוונטית מתוך: {source}."
+                elif language == "es":
+                    suggestion_text = f"Referencia relevante del playbook desde {source}."
+                elif language == "fr":
+                    suggestion_text = f"Référence du playbook pertinente depuis {source}."
+
                 return json.dumps({
                     "type": "script" if "script" in best_match["text"].lower() else "tip",
                     "priority": "medium",
                     "title": title[:40],
-                    "suggestion": f"Relevant playbook reference from {source}." if language != "he" else f"התייחסות רלוונטית מתוך: {source}.",
+                    "suggestion": suggestion_text,
                     "script": detail[:200]
                 }, indent=2, ensure_ascii=False)
                 
@@ -273,14 +339,22 @@ Example of Hebrew output:
                 "suggestion": "הקשב באופן פעיל ושאל שאלות מבהירות כדי להבין את זרימת העבודה הנוכחית ואת נקודות הכאב המרכזיות שלהם.",
                 "script": "איך אתם מנהלים את זרימת העבודה הזו כיום, ומהו המכשול הגדול ביותר שאתם נתקלים בו?"
             }, indent=2, ensure_ascii=False)
-
-        return json.dumps({
-            "type": "tip",
-            "priority": "medium",
-            "title": "Acknowledge & Qualify",
-            "suggestion": "Listen actively and ask clarifying questions to understand their current workflow and core pain points.",
-            "script": "How are you currently managing these workflows, and what is the biggest bottleneck you face today?"
-        }, indent=2, ensure_ascii=False)
+        elif language == "es":
+            return json.dumps({
+                "type": "tip",
+                "priority": "medium",
+                "title": "Escucha activa y preguntas",
+                "suggestion": "Escuche activamente y haga preguntas aclaratorias para comprender su flujo de trabajo actual y sus puntos débiles principales.",
+                "script": "¿Cómo gestionan actualmente estos flujos de trabajo y cuál es el mayor obstáculo que enfrentan hoy?"
+            }, indent=2, ensure_ascii=False)
+        elif language == "fr":
+            return json.dumps({
+                "type": "tip",
+                "priority": "medium",
+                "title": "Écoute active et questions",
+                "suggestion": "Écoutez activement et posez des questions de clarification pour comprendre leur flux de travail actuel et leurs points faibles.",
+                "script": "Comment gérez-vous actuellement ces flux de travail et quel est le plus grand goulot d'étranglement auquel vous faites face aujourd'hui ?"
+            }, indent=2, ensure_ascii=False)
 
     async def get_coaching_full(self, transcript_text: str, language: str = "en") -> dict:
         """

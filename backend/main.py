@@ -121,7 +121,14 @@ async def health_check():
 @app.get("/api/playbook")
 async def get_playbook(language: str = "en"):
     """Get the sales playbook data."""
-    file_name = "sales_playbook_he.json" if language == "he" else "sales_playbook.json"
+    if language == "he":
+        file_name = "sales_playbook_he.json"
+    elif language == "es":
+        file_name = "sales_playbook_es.json"
+    elif language == "fr":
+        file_name = "sales_playbook_fr.json"
+    else:
+        file_name = "sales_playbook.json"
     playbook_path = DATA_DIR / file_name
     if not playbook_path.exists():
         raise HTTPException(status_code=404, detail="Playbook not found")
@@ -132,7 +139,14 @@ async def get_playbook(language: str = "en"):
 @app.get("/api/objections")
 async def get_objections(language: str = "en"):
     """Get the objection handling scripts."""
-    file_name = "objection_scripts_he.json" if language == "he" else "objection_scripts.json"
+    if language == "he":
+        file_name = "objection_scripts_he.json"
+    elif language == "es":
+        file_name = "objection_scripts_es.json"
+    elif language == "fr":
+        file_name = "objection_scripts_fr.json"
+    else:
+        file_name = "objection_scripts.json"
     objections_path = DATA_DIR / file_name
     if not objections_path.exists():
         raise HTTPException(status_code=404, detail="Objection scripts not found")
@@ -177,7 +191,14 @@ async def ingest_documents():
 @app.get("/api/demo-transcript")
 async def get_demo_transcript(language: str = "en"):
     """Get the demo transcript for frontend-driven TTS playback."""
-    file_name = "demo_transcript_he.json" if language == "he" else "demo_transcript.json"
+    if language == "he":
+        file_name = "demo_transcript_he.json"
+    elif language == "es":
+        file_name = "demo_transcript_es.json"
+    elif language == "fr":
+        file_name = "demo_transcript_fr.json"
+    else:
+        file_name = "demo_transcript.json"
     demo_path = DATA_DIR / file_name
     if not demo_path.exists():
         raise HTTPException(status_code=404, detail="Demo transcript not found")
@@ -200,6 +221,10 @@ async def get_tts(text: str, lang: str = "he", speaker: str = "rep"):
     # Choose voice based on language and speaker
     if lang == "he":
         voice = "he-IL-AvriNeural" if speaker == "rep" else "he-IL-HilaNeural"
+    elif lang == "es":
+        voice = "es-ES-AlvaroNeural" if speaker == "rep" else "es-ES-ElviraNeural"
+    elif lang == "fr":
+        voice = "fr-FR-HenriNeural" if speaker == "rep" else "fr-FR-DeniseNeural"
     else:  # en or other
         voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
 
@@ -379,7 +404,14 @@ async def coaching_websocket(websocket: WebSocket):
                     # Generate dynamic prospect response based on rep's input
                     async def generate_prospect():
                         try:
-                            lang_name = "Hebrew" if language == "he" else "English"
+                            if language == "he":
+                                lang_name = "Hebrew"
+                            elif language == "es":
+                                lang_name = "Spanish"
+                            elif language == "fr":
+                                lang_name = "French"
+                            else:
+                                lang_name = "English"
                             system_prompt = PROSPECT_SYSTEM_PROMPT.format(language_name=lang_name)
                             
                             # Count representative turns to trigger natural closing behavior
@@ -387,6 +419,10 @@ async def coaching_websocket(websocket: WebSocket):
                             if rep_turns >= 4:
                                 if language == "he":
                                     system_prompt += "\n\n## הנחיית סיום\nזוהי הפנייה האחרונה של השיחה. הסכימי לצעדים הבאים שהוצעו על ידי הנציג (כגון פגישה או פיילוט), סיימי את השיחה בנימוס ואמרי שלום חם."
+                                elif language == "es":
+                                    system_prompt += "\n\n## INSTRUCCIÓN DE CIERRE\nEsta es la última parte de la conversación. Acepte los siguientes pasos propuestos por el representante (como una llamada o prueba), finalice cortésmente la llamada y despídase amablemente."
+                                elif language == "fr":
+                                    system_prompt += "\n\n## INSTRUCTION DE CLÔTURE\nIl s'agit du dernier tour de la conversation. Acceptez les prochaines étapes proposées par le représentant (comme un appel ou un essai), terminez poliment l'appel et dites au revoir chaleureusement."
                                 else:
                                     system_prompt += "\n\n## CLOSING RULE\nThis is the final turn of the conversation. Agree to the representative's proposed next steps (like a call or trial), politely wind down the call, and say a warm goodbye."
                             
@@ -421,7 +457,7 @@ async def coaching_websocket(websocket: WebSocket):
                             })
                         except Exception as e:
                             logger.error(f"Error generating prospect response: {e}")
-                            fallback = "אני מבינה. תוכל להסביר עוד?" if language == "he" else "I see. Can you explain more?"
+                            fallback = "אני מבינה. תוכל להסביר עוד?" if language == "he" else "Comprendo. ¿Podrías explicar más?" if language == "es" else "Je comprends. Pourriez-vous en dire plus ?" if language == "fr" else "I see. Can you explain more?"
                             await send_json({
                                 "type": "prospect_response",
                                 "text": fallback,
@@ -554,7 +590,14 @@ async def demo_websocket(websocket: WebSocket):
             language = start_msg.get("language", language)
 
             # Load demo transcript based on language
-            file_name = "demo_transcript_he.json" if language == "he" else "demo_transcript.json"
+            if language == "he":
+                file_name = "demo_transcript_he.json"
+            elif language == "es":
+                file_name = "demo_transcript_es.json"
+            elif language == "fr":
+                file_name = "demo_transcript_fr.json"
+            else:
+                file_name = "demo_transcript.json"
             demo_path = DATA_DIR / file_name
             if not demo_path.exists():
                 await websocket.send_json({

@@ -554,7 +554,7 @@ class RAGEngine:
         for f in files_to_ingest:
             source_type = "playbook" if "playbook" in f.stem else \
                           "objection" if "objection" in f.stem else "knowledge"
-            language = "he" if f.stem.endswith("_he") else "en"
+            language = "he" if f.stem.endswith("_he") else "es" if f.stem.endswith("_es") else "fr" if f.stem.endswith("_fr") else "en"
             
             # Remove old chunks for this file
             file_name = f.stem

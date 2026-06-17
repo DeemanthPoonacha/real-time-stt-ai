@@ -45,7 +45,7 @@ export default function CallStats({
       label: t('callDuration', language), 
       value: formatDuration(elapsed), 
       icon: '⏱️', 
-      color: 'text-[--color-accent-blue]',
+      color: 'text-accent-blue',
       bgColor: 'rgba(56,189,248,0.06)',
       borderColor: 'rgba(56,189,248,0.12)'
     },
@@ -53,7 +53,7 @@ export default function CallStats({
       label: t('transcripts', language), 
       value: transcriptCount.toString(), 
       icon: '💬', 
-      color: 'text-[--color-accent-emerald]',
+      color: 'text-accent-emerald',
       bgColor: 'rgba(16,185,129,0.06)',
       borderColor: 'rgba(16,185,129,0.12)'
     },
@@ -61,7 +61,7 @@ export default function CallStats({
       label: t('aiCoachTips', language), 
       value: suggestionCount.toString(), 
       icon: '🤖', 
-      color: 'text-[--color-accent-violet]',
+      color: 'text-accent-violet',
       bgColor: 'rgba(167,139,250,0.06)',
       borderColor: 'rgba(167,139,250,0.12)'
     },
@@ -69,23 +69,23 @@ export default function CallStats({
       label: t('objectionsBlocked', language), 
       value: objectionsDetected.toString(), 
       icon: '⚠️', 
-      color: 'text-[--color-accent-rose]',
+      color: 'text-accent-rose',
       bgColor: 'rgba(244,63,94,0.06)',
       borderColor: 'rgba(244,63,94,0.12)'
     },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat, i) => (
         <div 
           key={i} 
-          className="glass-card glass-card-hoverable px-5 py-4.5 flex items-center gap-4 animate-slide-up" 
+          className="glass-card glass-card-hoverable px-4 py-4 flex items-center gap-3.5 animate-slide-up" 
           style={{ animationDelay: `${i * 0.08}s` }}
         >
           {/* Glowing Icon Wrapper */}
           <div 
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-xl shadow-inner border"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-inner border flex-shrink-0"
             style={{ 
               backgroundColor: stat.bgColor, 
               borderColor: stat.borderColor,
@@ -97,17 +97,17 @@ export default function CallStats({
 
           {/* Metric Details */}
           <div>
-            <p className={`text-xl font-black ${stat.color} font-mono tracking-tight`}>
+            <p className={`text-lg lg:text-xl font-black ${stat.color} font-mono tracking-tight`}>
               {stat.value}
             </p>
-            <p className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold mt-0.5">
+            <p className="text-[10px] sm:text-[11px] text-text-secondary uppercase tracking-wider font-bold mt-0.5">
               {stat.label}
             </p>
           </div>
 
           {/* Active Breath Indicator for Call Duration */}
           {i === 0 && isActive && (
-            <div className="ml-auto w-2 h-2 rounded-full bg-[--color-accent-blue] animate-ping" />
+            <div className="ml-auto w-2 h-2 rounded-full bg-accent-blue animate-ping flex-shrink-0" />
           )}
         </div>
       ))}

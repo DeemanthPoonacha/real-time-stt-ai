@@ -6,7 +6,6 @@ interface DemoPlayerOptions {
   onProgress?: (progress: { current: number; total: number; speaker: string }) => void;
   onComplete?: () => void;
   onError?: (message: string) => void;
-  getLatestRepScript?: () => string | null;
   clearLatestRepScript?: () => void;
   onCoachingSuggestion?: (suggestion: { type: string; suggestion: string; title?: string; priority?: string; script?: string }) => void;
 }
@@ -26,7 +25,6 @@ export class DemoPlayer {
   private onProgress?: (progress: { current: number; total: number; speaker: string }) => void;
   private onComplete?: () => void;
   private onError?: (message: string) => void;
-  private getLatestRepScript?: () => string | null;
   private clearLatestRepScript?: () => void;
   private onCoachingSuggestion?: (suggestion: { type: string; suggestion: string; title?: string; priority?: string; script?: string }) => void;
 
@@ -40,7 +38,6 @@ export class DemoPlayer {
   private _prospectVoice: SpeechSynthesisVoice | null = null;
 
   // Low-latency cache and dynamic response state
-  private latestRepScript: string | null = null;
   private audioCache = new Map<string, HTMLAudioElement>();
   private isDynamic = true;
   private dynamicTurnCount = 0;
@@ -60,7 +57,6 @@ export class DemoPlayer {
     onProgress,
     onComplete,
     onError,
-    getLatestRepScript,
     clearLatestRepScript,
     onCoachingSuggestion
   }: DemoPlayerOptions) {
@@ -69,7 +65,6 @@ export class DemoPlayer {
     this.onProgress = onProgress;
     this.onComplete = onComplete;
     this.onError = onError;
-    this.getLatestRepScript = getLatestRepScript;
     this.clearLatestRepScript = clearLatestRepScript;
     this.onCoachingSuggestion = onCoachingSuggestion;
 
@@ -107,7 +102,6 @@ export class DemoPlayer {
 
   setDynamicRepScript(script: string) {
     if (!script || !script.trim()) return;
-    this.latestRepScript = script;
 
     // Start pre-fetching the audio for this dynamic script
     const ttsUrl = `${API_BASE}/api/tts?lang=${this.language}&speaker=rep&text=${encodeURIComponent(script.trim())}`;
@@ -177,7 +171,6 @@ export class DemoPlayer {
 
   private async speakRepScript(scriptToSpeak: string) {
     this.interruptedByRepScript = null; // Reset the flag
-    this.latestRepScript = null;
 
     // Show representative transcript in UI
     this.onTranscript?.({
@@ -273,13 +266,24 @@ export class DemoPlayer {
 
       const wrapupScript = this.language === 'he'
         ? "מצוין שרה, אשלח לך את כל החומרים וההשוואה עוד היום. תודה רבה והמשך יום נהדר!"
+        : this.language === 'es'
+        ? "Excelente Sarah, te enviaré todos los materiales y la tabla comparativa hoy mismo. ¡Muchas gracias y que tengas un excelente día!"
+        : this.language === 'fr'
+        ? "Excellent Sarah, je t'enverrai tous les documents et le tableau comparatif plus tard aujourd'hui. Merci pour ton temps et bonne journée !"
         : "Excellent Sarah, I'll send over all the materials and the comparison table later today. Thanks for your time and have a great day!";
 
       this.onCoachingSuggestion?.({
         type: 'closing',
-        title: this.language === 'he' ? 'סיכום וסיום השיחה' : 'Wrap Up & End Call',
+        title: this.language === 'he' ? 'סיכום וסיום השיחה'
+          : this.language === 'es' ? 'Resumen y fin de la llamada'
+          : this.language === 'fr' ? 'Synthèse et fin de l\'appel'
+          : 'Wrap Up & End Call',
         suggestion: this.language === 'he'
           ? 'השיחה הגיעה לסיומה. הודה ללקוח וסכם את הצעדים הבאים.'
+          : this.language === 'es'
+          ? 'La conversación está terminando. Agradezca al cliente y resuma los próximos pasos.'
+          : this.language === 'fr'
+          ? 'La conversation se termine. Remerciez le client et résumez les prochaines étapes.'
           : 'The conversation is wrapping up. Thank the customer and summarize the next steps.',
         script: wrapupScript,
         priority: 'high'
@@ -346,7 +350,6 @@ export class DemoPlayer {
     this.language = language;
     this.isCancelled = false;
     this.audioCache.clear();
-    this.latestRepScript = null;
 
     try {
       // Fetch demo transcript from backend
@@ -369,9 +372,16 @@ export class DemoPlayer {
         // 1. Show greeting on Coaching Panel as a suggested script card
         this.onCoachingSuggestion?.({
           type: 'script',
-          title: this.language === 'he' ? 'פתח שיחה: ברכה ראשונית' : 'Call Opener: Initial Greeting',
+          title: this.language === 'he' ? 'פתח שיחה: ברכה ראשונית'
+            : this.language === 'es' ? 'Apertura de llamada: Saludo inicial'
+            : this.language === 'fr' ? 'Ouverture de l\'appel : Salutation initiale'
+            : 'Call Opener: Initial Greeting',
           suggestion: this.language === 'he' 
             ? 'התחל את השיחה על ידי ברכת הלקוח והצגת עצמך.' 
+            : this.language === 'es'
+            ? 'Inicie la conversación saludando al cliente y presentándose.'
+            : this.language === 'fr'
+            ? 'Commencez la conversation en saluant le client et en vous présentant.'
             : 'Start the conversation by greeting the customer and introducing yourself.',
           script: greetingSegment.text,
           priority: 'high'
@@ -448,11 +458,23 @@ export class DemoPlayer {
 
         if (segment.speaker === 'rep') {
           const suggestionTitle = i === 0
-            ? (this.language === 'he' ? 'פתח שיחה: ברכה ראשונית' : 'Call Opener: Initial Greeting')
-            : (this.language === 'he' ? 'תסריט מוצע' : 'Suggested Script');
+            ? (this.language === 'he' ? 'פתח שיחה: ברכה ראשונית'
+              : this.language === 'es' ? 'Apertura de llamada: Saludo inicial'
+              : this.language === 'fr' ? 'Ouverture de l\'appel : Salutation initiale'
+              : 'Call Opener: Initial Greeting')
+            : (this.language === 'he' ? 'תסריט מוצע'
+              : this.language === 'es' ? 'Guion sugerido'
+              : this.language === 'fr' ? 'Script suggéré'
+              : 'Suggested Script');
           const suggestionDesc = i === 0
-            ? (this.language === 'he' ? 'התחל את השיחה על ידי ברכת הלקוח והצגת עצמך.' : 'Start the conversation by greeting the customer and introducing yourself.')
-            : (this.language === 'he' ? 'קרא את התסריט המוצע לפרק זה.' : 'Speak the suggested talk track for this segment.');
+            ? (this.language === 'he' ? 'התחל את השיחה על ידי ברכת הלקוח והצגת עצמך.'
+              : this.language === 'es' ? 'Inicie la conversación saludando al cliente y presentándose.'
+              : this.language === 'fr' ? 'Commencez la conversation en saluant le client et en vous présentant.'
+              : 'Start the conversation by greeting the customer and introducing yourself.')
+            : (this.language === 'he' ? 'קרא את התסריט המוצע לפרק זה.'
+              : this.language === 'es' ? 'Diga el guion sugerido para este segmento.'
+              : this.language === 'fr' ? 'Dites le script suggéré pour ce segment.'
+              : 'Speak the suggested talk track for this segment.');
           const suggestionPriority = i === 0 ? 'high' : 'medium';
 
           this.onCoachingSuggestion?.({
@@ -466,7 +488,6 @@ export class DemoPlayer {
           console.log(`⏳ demoPlayer (static): Pausing at segment ${i}. Awaiting user trigger...`);
           textToSpeak = await this.waitForRepTrigger();
 
-          this.latestRepScript = null;
           this.clearLatestRepScript?.();
           audioToPlay = this.audioCache.get('dynamic-rep') || null;
           this.audioCache.delete('dynamic-rep');
@@ -586,6 +607,36 @@ export class DemoPlayer {
           } else {
             handleResolve();
           }
+        } else if (this.language === 'es') {
+          const esVoices = synth.getVoices().filter(v => v.lang.startsWith('es'));
+          if (esVoices.length > 0) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.voice = speaker === 'rep' ? esVoices[0] : (esVoices[1] || esVoices[0]);
+            utterance.pitch = speaker === 'rep' ? 1.0 : 1.1;
+            utterance.rate = 1.0 * this.speed;
+            utterance.volume = 0.8;
+            utterance.onend = handleResolve;
+            utterance.onerror = handleResolve;
+            synth.speak(utterance);
+          } else {
+            handleResolve();
+          }
+        } else if (this.language === 'fr') {
+          const frVoices = synth.getVoices().filter(v => v.lang.startsWith('fr'));
+          if (frVoices.length > 0) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.voice = speaker === 'rep' ? frVoices[0] : (frVoices[1] || frVoices[0]);
+            utterance.pitch = speaker === 'rep' ? 1.0 : 1.1;
+            utterance.rate = 1.0 * this.speed;
+            utterance.volume = 0.8;
+            utterance.onend = handleResolve;
+            utterance.onerror = handleResolve;
+            synth.speak(utterance);
+          } else {
+            handleResolve();
+          }
         } else {
           const utterance = new SpeechSynthesisUtterance(text);
           if (speaker === 'rep') {
@@ -659,7 +710,6 @@ export class DemoPlayer {
       (this as any)._activeAudio = null;
     }
     this.audioCache.clear();
-    this.latestRepScript = null;
     this.onSpeakingChange?.(null);
   }
 

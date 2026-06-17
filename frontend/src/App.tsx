@@ -49,6 +49,7 @@ export default function App() {
   const [demoSpeaker, setDemoSpeaker] = useState<string | null>(null); // who is currently speaking in demo
   const [demoProgress, setDemoProgress] = useState<{ current: number; total: number; speaker: string } | null>(null); // {current, total}
   const [activeRetrievedDocs, setActiveRetrievedDocs] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'transcript' | 'coaching' | 'playbook'>('coaching');
 
   // --- Refs ---
   const wsRef = useRef<WebSocketManager | null>(null);
@@ -122,6 +123,8 @@ export default function App() {
             retrieved_docs: activeRetrievedDocsRef.current
           };
           setCoachingSuggestions(prev => [...prev, newSuggestion]); // Append suggestions
+          setActiveTab('coaching'); // Auto switch tab to coaching to highlight new recommendations
+          
           
           // Fall back to suggestion description if no script is present to ensure playability
           const repText = data.data.script || data.data.suggestion;
@@ -315,7 +318,6 @@ export default function App() {
           wsRef.current = null;
           latestRepScriptRef.current = null;
         },
-        getLatestRepScript: () => latestRepScriptRef.current,
         clearLatestRepScript: () => {
           latestRepScriptRef.current = null;
         },
@@ -398,35 +400,29 @@ export default function App() {
 
       {/* ===== Top Bar ===== */}
       <header className="glass-card rounded-none border-x-0 border-t-0 px-6 py-4 bg-[rgba(8,12,28,0.5)] backdrop-blur-xl">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[--color-accent-blue] to-[--color-accent-violet] flex items-center justify-center shadow-lg shadow-[rgba(99,102,241,0.25)] relative overflow-hidden group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-blue to-accent-violet flex items-center justify-center shadow-lg shadow-[rgba(99,102,241,0.25)] relative overflow-hidden group">
               <span className="text-white text-lg font-black tracking-wider relative z-10">S</span>
               <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold text-[--color-text-primary] tracking-tight flex items-center gap-1.5">
+              <h1 className="text-lg font-extrabold text-text-primary tracking-tight flex items-center gap-1.5">
                 <span>SalesCoach</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">AI</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-blue to-accent-violet drop-shadow-[0_0_15px_rgba(99,102,241,0.2)]">AI</span>
 
                 {/* Connection Status Pill */}
-                <div className="flex items-center gap-2  rounded-full bg-white/[0.01]">
+                <div className="flex items-center gap-2 rounded-full bg-white/[0.01]">
                   <div className={`status-dot ${
                     connectionState === 'connected' ? 'status-dot--connected' :
                     connectionState === 'processing' ? 'status-dot--processing' :
                     connectionState === 'error' ? 'status-dot--error' :
                     'status-dot--disconnected'
                   }`} />
-                  {/* <span className="text-[10px] text-[--color-text-secondary] uppercase tracking-wider font-bold">
-                    {connectionState === 'connected' ? t('connected', language) :
-                    connectionState === 'processing' ? t('processing', language) :
-                    connectionState === 'error' ? t('error', language) : t('offline', language)}
-                  </span> */}
                 </div>
-
               </h1>
-              <p className="text-[9px] text-[--color-text-muted] uppercase tracking-widest font-semibold">
+              <p className="text-[9px] text-text-muted uppercase tracking-widest font-semibold">
                 {t('logoSubtitle', language)}
               </p>
             </div>
@@ -450,36 +446,36 @@ export default function App() {
 
         {/* Demo TTS indicator */}
         {isDemo && (
-          <div className="flex items-center gap-3 mt-3.5 px-3 py-2 bg-[rgba(255,255,255,0.01)] border border-[--color-border] rounded-xl animate-fade-in max-w-fit">
+          <div className="flex items-center gap-3 mt-3.5 px-3 py-2 bg-[rgba(255,255,255,0.01)] border border-border rounded-xl animate-fade-in max-w-fit">
             <div className="flex items-center gap-2">
               <span className="text-xs animate-bounce-subtle">🔊</span>
-              <span className="text-[9px] uppercase tracking-wider text-[--color-text-muted] font-bold">
+              <span className="text-[9px] uppercase tracking-wider text-text-muted font-bold">
                 {t('simulationActive', language)}
               </span>
             </div>
             {demoSpeaker && (
-              <div className="flex items-center gap-2 animate-fade-in border-l border-[--color-border] pl-3">
+              <div className="flex items-center gap-2 animate-fade-in border-l border-border pl-3">
                 <div className={`w-2 h-2 rounded-full animate-ping ${demoSpeaker === 'rep'
-                    ? 'bg-[--color-accent-blue]'
-                    : 'bg-[--color-accent-emerald]'
+                    ? 'bg-accent-blue'
+                    : 'bg-accent-emerald'
                   }`} />
                 <span className={`text-xs font-semibold tracking-wide ${demoSpeaker === 'rep'
-                    ? 'text-[--color-accent-blue]'
-                    : 'text-[--color-accent-emerald]'
+                    ? 'text-accent-blue'
+                    : 'text-accent-emerald'
                   }`}>
                   {demoSpeaker === 'rep' ? t('repSpeaking', language) : t('prospectSpeaking', language)}
                 </span>
               </div>
             )}
             {demoProgress && (
-              <div className="flex items-center gap-3 border-l border-[--color-border] pl-3 ml-2">
-                <div className="w-20 h-1 bg-[--color-bg-secondary] rounded-full overflow-hidden">
+              <div className="flex items-center gap-3 border-l border-border pl-3 ml-2">
+                <div className="w-20 h-1 bg-bg-secondary rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[--color-accent-blue] to-[--color-accent-violet] rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-accent-blue to-accent-violet rounded-full transition-all duration-500"
                     style={{ width: `${(demoProgress.current / demoProgress.total) * 100}%` }}
                   />
                 </div>
-                <span className="text-[9px] text-[--color-text-muted] font-mono font-bold">
+                <span className="text-[9px] text-text-muted font-mono font-bold">
                   {demoProgress.current}/{demoProgress.total} {t('phrases', language)}
                 </span>
               </div>
@@ -500,18 +496,52 @@ export default function App() {
         />
       </div>
 
-      {/* ===== Main Content: 3-Panel Layout ===== */}
-      <main className="flex-grow px-6 pb-6 grid grid-cols-12 gap-4 min-h-0 overflow-hidden">
-        {/* Left: Live Transcript */}
-        <div className="col-span-3 h-full flex flex-col min-h-0">
+      {/* ===== Mobile View Tabs Navigation Bar ===== */}
+      <div className="flex lg:hidden justify-between border border-border bg-white/[0.01] p-1 rounded-xl mx-6 mb-3 gap-1">
+        <button
+          onClick={() => setActiveTab('transcript')}
+          className={`flex-1 text-center py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+            activeTab === 'transcript'
+              ? 'bg-accent-emerald/10 text-accent-emerald border border-accent-emerald/25'
+              : 'text-text-secondary hover:text-text-primary border border-transparent'
+          }`}
+        >
+          {language === 'he' ? 'תמליל שיחה' : 'Transcript'}
+        </button>
+        <button
+          onClick={() => setActiveTab('coaching')}
+          className={`flex-1 text-center py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+            activeTab === 'coaching'
+              ? 'bg-accent-blue/10 text-accent-blue border border-accent-blue/25'
+              : 'text-text-secondary hover:text-text-primary border border-transparent'
+          }`}
+        >
+          {language === 'he' ? 'עוזר מכירות AI' : 'AI Copilot'}
+        </button>
+        <button
+          onClick={() => setActiveTab('playbook')}
+          className={`flex-1 text-center py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all duration-300 ${
+            activeTab === 'playbook'
+              ? 'bg-accent-violet/10 text-accent-violet border border-accent-violet/25'
+              : 'text-text-secondary hover:text-text-primary border border-transparent'
+          }`}
+        >
+          {language === 'he' ? 'ספר הדרכה' : 'Playbook'}
+        </button>
+      </div>
+
+      {/* ===== Main Content: Responsive 3-Panel Layout ===== */}
+      <main className="flex-grow px-6 pb-6 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 overflow-hidden">
+        {/* Left Panel: Live Transcript */}
+        <div className={`col-span-1 lg:col-span-3 h-full flex flex-col min-h-0 ${activeTab === 'transcript' ? 'flex' : 'hidden lg:flex'}`}>
           <LiveTranscript
             segments={transcriptSegments}
             language={language}
           />
         </div>
 
-        {/* Center: AI Coaching */}
-        <div className="col-span-6 h-full flex flex-col min-h-0">
+        {/* Center Panel: AI Coaching suggestions feed */}
+        <div className={`col-span-1 lg:col-span-6 h-full flex flex-col min-h-0 ${activeTab === 'coaching' ? 'flex' : 'hidden lg:flex'}`}>
           <CoachingPanel
             suggestions={coachingSuggestions}
             streamingText={streamingText}
@@ -521,8 +551,8 @@ export default function App() {
           />
         </div>
 
-        {/* Right: Playbook */}
-        <div className="col-span-3 h-full flex flex-col min-h-0">
+        {/* Right Panel: Playbook Reference lookup */}
+        <div className={`col-span-1 lg:col-span-3 h-full flex flex-col min-h-0 ${activeTab === 'playbook' ? 'flex' : 'hidden lg:flex'}`}>
           <PlaybookSidebar
             language={language}
             activeRetrievedDocs={activeRetrievedDocs}

@@ -33,6 +33,18 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
   const scrollRef = useRef<HTMLDivElement>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
+  const getPriorityLabel = (priority: string, lang: string) => {
+    const p = (priority || '').toLowerCase();
+    if (lang === 'he') {
+      return p.startsWith('hi') ? 'גבוה' : p.startsWith('me') ? 'בינוני' : 'נמוך';
+    } else if (lang === 'es') {
+      return p.startsWith('hi') ? 'alta' : p.startsWith('me') ? 'media' : 'baja';
+    } else if (lang === 'fr') {
+      return p.startsWith('hi') ? 'haute' : p.startsWith('me') ? 'moyenne' : 'basse';
+    }
+    return priority;
+  };
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
@@ -46,7 +58,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         icon: '⚠️',
         label: t('objectionHandling', language),
         cardClass: 'coaching-card--objection',
-        badge: 'bg-[--color-accent-rose]/10 text-[--color-accent-rose] border-[--color-accent-rose]/20'
+        badge: 'bg-accent-rose/10 text-accent-rose border-accent-rose/20'
       };
     }
     if (tLower.startsWith('sc') || tLower.startsWith('talk')) {
@@ -54,7 +66,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         icon: '💬',
         label: t('suggestedScript', language),
         cardClass: 'coaching-card--script',
-        badge: 'bg-[--color-accent-blue]/10 text-[--color-accent-blue] border-[--color-accent-blue]/20'
+        badge: 'bg-accent-blue/10 text-accent-blue border-accent-blue/20'
       };
     }
     if (tLower.startsWith('al')) {
@@ -62,7 +74,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         icon: '⚡',
         label: t('immediateAlert', language),
         cardClass: 'coaching-card--alert',
-        badge: 'bg-[--color-accent-amber]/10 text-[--color-accent-amber] border-[--color-accent-amber]/20'
+        badge: 'bg-accent-amber/10 text-accent-amber border-accent-amber/20'
       };
     }
     if (tLower.startsWith('cl') || tLower.startsWith('buy')) {
@@ -70,7 +82,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         icon: '🎯',
         label: t('closingOpportunity', language),
         cardClass: 'coaching-card--closing',
-        badge: 'bg-[--color-accent-violet]/10 text-[--color-accent-violet] border-[--color-accent-violet]/20'
+        badge: 'bg-accent-violet/10 text-accent-violet border-accent-violet/20'
       };
     }
     // Default to tip
@@ -78,7 +90,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
       icon: '💡',
       label: t('coachingTip', language),
       cardClass: 'coaching-card--tip',
-      badge: 'bg-[--color-accent-emerald]/10 text-[--color-accent-emerald] border-[--color-accent-emerald]/20'
+      badge: 'bg-accent-emerald/10 text-accent-emerald border-accent-emerald/20'
     };
   };
 
@@ -94,12 +106,12 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
   const getPriorityBadge = (priority: string) => {
     const pLower = (priority || '').toLowerCase();
     if (pLower.startsWith('hi')) {
-      return 'bg-[--color-accent-rose]/10 text-[--color-accent-rose] border-[--color-accent-rose]/30';
+      return 'bg-accent-rose/10 text-accent-rose border-accent-rose/30';
     }
     if (pLower.startsWith('me')) {
-      return 'bg-[--color-accent-amber]/10 text-[--color-accent-amber] border-[--color-accent-amber]/30';
+      return 'bg-accent-amber/10 text-accent-amber border-accent-amber/30';
     }
-    return 'bg-white/[0.03] text-[--color-text-muted] border-[--color-border]';
+    return 'bg-white/[0.03] text-text-secondary border-border';
   };
 
   const copyToClipboard = (text: string, index: number) => {
@@ -169,7 +181,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
     return (
       <div
         key={`active-${index}`}
-        className={`glass-card ${config.cardClass} p-5 animate-slide-up relative overflow-hidden border-[--color-accent-blue]/40 shadow-[0_4px_24px_rgba(99,102,241,0.15)] ring-1 ring-[--color-accent-blue]/10`}
+        className={`glass-card ${config.cardClass} p-5 animate-slide-up relative overflow-hidden border-accent-blue/40 shadow-[0_4px_24px_rgba(99,102,241,0.15)] ring-1 ring-accent-blue/10`}
       >
         {/* Card Header */}
         <div className="flex items-center gap-2 mb-3">
@@ -179,35 +191,33 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
           </span>
           {suggestion.priority && (
             <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ml-auto ${getPriorityBadge(suggestion.priority)}`}>
-              {suggestion.priority === 'high' ? (language === 'he' ? 'גבוה' : 'high') :
-                suggestion.priority === 'medium' ? (language === 'he' ? 'בינוני' : 'medium') :
-                  suggestion.priority}
+              {getPriorityLabel(suggestion.priority, language)}
             </span>
           )}
         </div>
 
         {/* Title */}
         {suggestion.title && (
-          <h3 className="text-base font-extrabold text-[--color-text-primary] mb-2 tracking-tight">
+          <h3 className="text-base font-extrabold text-text-primary mb-2 tracking-tight">
             {suggestion.title}
           </h3>
         )}
 
         {/* Suggestion Text */}
         <div className="flex items-start justify-between gap-4">
-          <p className="text-sm text-[--color-text-secondary] leading-relaxed font-semibold flex-grow">
+          <p className="text-sm text-text-secondary leading-relaxed font-semibold flex-grow">
             {suggestion.suggestion}
           </p>
           {!suggestion.script && onSpeakScript && (
             <button
               onClick={() => onSpeakScript(suggestion.suggestion)}
-              className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
-              title={language === 'he' ? 'דבר הצעת אימון' : 'Speak Suggestion'}
+              className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-accent-blue/25 to-accent-violet/25 border border-accent-blue/40 hover:from-accent-blue/35 hover:to-accent-violet/35 hover:border-accent-blue text-text-primary transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+              title={language === 'he' ? 'דבר הצעת אימון' : language === 'es' ? 'Hablar sugerencia' : language === 'fr' ? 'Parler de suggestion' : 'Speak Suggestion'}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue mr-1">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              <span>{language === 'he' ? 'דבר הצעה' : 'Speak Suggestion'}</span>
+              <span>{language === 'he' ? 'דבר הצעה' : language === 'es' ? 'Hablar sugerencia' : language === 'fr' ? 'Parler de suggestion' : 'Speak Suggestion'}</span>
             </button>
           )}
         </div>
@@ -215,19 +225,19 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         {/* Script Bubble */}
         {suggestion.script && (
           <div className="mt-4 relative group/script">
-            <div className="bg-[--color-bg-secondary] rounded-xl p-3.5 border border-[--color-border] bg-opacity-80 transition-all duration-300 group-hover/script:border-white/10">
+            <div className="bg-bg-secondary rounded-xl p-3.5 border border-border bg-opacity-80 transition-all duration-300 group-hover/script:border-white/10">
               <div className="flex items-center justify-between mb-2.5">
-                <span className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold">
+                <span className="text-[11px] text-text-secondary uppercase tracking-wider font-bold">
                   {t('dialogueTalkTrack', language)}
                 </span>
 
                 <div className='flex gap-2 items-center'>
                   <button
                     onClick={() => copyToClipboard(suggestion.script!, index)}
-                    className="text-[9px] text-[--color-accent-blue] hover:text-[--color-text-primary] transition-all duration-200 opacity-0 group-hover/script:opacity-100 flex items-center gap-1.5 cursor-pointer font-bold uppercase tracking-wider"
+                    className="text-[9px] text-accent-blue hover:text-text-primary transition-all duration-200 opacity-0 group-hover/script:opacity-100 flex items-center gap-1.5 cursor-pointer font-bold uppercase tracking-wider"
                   >
                     {copiedIndex === index ? (
-                      <span className="text-[--color-accent-emerald] flex items-center gap-1">
+                      <span className="text-accent-emerald flex items-center gap-1">
                         <span>✓</span> {t('copied', language)}
                       </span>
                     ) : (
@@ -237,17 +247,17 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                   {onSpeakScript && (
                     <button
                       onClick={() => onSpeakScript(suggestion.script!)}
-                      className="flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+                      className="flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-accent-blue/25 to-accent-violet/25 border border-accent-blue/40 hover:from-accent-blue/35 hover:to-accent-violet/35 hover:border-accent-blue text-text-primary transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue mr-1">
                         <polygon points="5 3 19 12 5 21 5 3" />
                       </svg>
-                      <span>{language === 'he' ? 'דבר תסריט מוצע' : 'Speak Suggested Script'}</span>
+                      <span>{language === 'he' ? 'דבר תסריט מוצע' : language === 'es' ? 'Hablar guion sugerido' : language === 'fr' ? 'Parler du script suggéré' : 'Speak Suggested Script'}</span>
                     </button>
                   )}
                 </div>
               </div>
-              <p className="text-lg text-[--color-text-primary] italic leading-relaxed font-mono font-semibold pl-2 border-l-2 border-[--color-accent-blue] mb-1">
+              <p className="text-lg text-text-primary italic leading-relaxed font-mono font-semibold pl-2 border-l-2 border-accent-blue mb-1">
                 "{suggestion.script}"
               </p>
             </div>
@@ -273,35 +283,33 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
           </span>
           {suggestion.priority && (
             <span className={`text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full border ml-auto ${getPriorityBadge(suggestion.priority)} opacity-80`}>
-              {suggestion.priority === 'high' ? (language === 'he' ? 'גבוה' : 'high') :
-                suggestion.priority === 'medium' ? (language === 'he' ? 'בינוני' : 'medium') :
-                  suggestion.priority}
+              {getPriorityLabel(suggestion.priority, language)}
             </span>
           )}
         </div>
 
         {/* Title */}
         {suggestion.title && (
-          <h4 className="text-sm font-bold text-[--color-text-secondary] mb-1 tracking-tight">
+          <h4 className="text-sm font-bold text-text-secondary mb-1 tracking-tight">
             {suggestion.title}
           </h4>
         )}
 
         {/* Suggestion Text */}
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] text-[--color-text-muted] leading-relaxed flex-grow">
+          <p className="text-xs text-text-secondary leading-relaxed flex-grow">
             {suggestion.suggestion}
           </p>
           {!suggestion.script && onSpeakScript && (
             <button
               onClick={() => onSpeakScript(suggestion.suggestion)}
-              className="flex-shrink-0 flex items-center justify-center gap-1 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-[--color-text-primary] transition-all duration-300 cursor-pointer"
-              title={language === 'he' ? 'דבר' : 'Speak'}
+              className="flex-shrink-0 flex items-center justify-center gap-1 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-text-primary transition-all duration-300 cursor-pointer"
+              title={language === 'he' ? 'דבר' : language === 'es' ? 'Hablar' : language === 'fr' ? 'Parler' : 'Speak'}
             >
-              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue]">
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              <span>{language === 'he' ? 'דבר' : 'Speak'}</span>
+              <span>{language === 'he' ? 'דבר' : language === 'es' ? 'Hablar' : language === 'fr' ? 'Parler' : 'Speak'}</span>
             </button>
           )}
         </div>
@@ -309,19 +317,19 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         {/* Script Bubble */}
         {suggestion.script && (
           <div className="mt-2.5 relative group/script">
-            <div className="bg-[--color-bg-secondary]/50 rounded-lg p-2.5 border border-white/[0.01] transition-all duration-300 group-hover/script:border-white/5">
+            <div className="bg-bg-secondary/50 rounded-lg p-2.5 border border-white/[0.01] transition-all duration-300 group-hover/script:border-white/5">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[8px] text-[--color-text-muted] uppercase tracking-wider font-extrabold">
+                <span className="text-[10px] text-text-secondary uppercase tracking-wider font-bold">
                   {t('dialogueTalkTrack', language)}
                 </span>
 
                 <div className='flex gap-1.5 items-center'>
                   <button
                     onClick={() => copyToClipboard(suggestion.script!, index)}
-                    className="text-[8px] text-[--color-accent-blue] hover:text-[--color-text-primary] transition-all duration-200 opacity-60 group-hover/script:opacity-100 flex items-center gap-1 cursor-pointer font-bold uppercase tracking-wider"
+                    className="text-[8px] text-accent-blue hover:text-text-primary transition-all duration-200 opacity-60 group-hover/script:opacity-100 flex items-center gap-1 cursor-pointer font-bold uppercase tracking-wider"
                   >
                     {copiedIndex === index ? (
-                      <span className="text-[--color-accent-emerald] flex items-center gap-1">
+                      <span className="text-accent-emerald flex items-center gap-1">
                         <span>✓</span> {t('copied', language)}
                       </span>
                     ) : (
@@ -331,17 +339,17 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                   {onSpeakScript && (
                     <button
                       onClick={() => onSpeakScript(suggestion.script!)}
-                      className="flex items-center justify-center gap-1 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-[--color-text-primary] transition-all duration-300 cursor-pointer"
+                      className="flex items-center justify-center gap-1 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider rounded bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-text-primary transition-all duration-300 cursor-pointer"
                     >
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue]">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue">
                         <polygon points="5 3 19 12 5 21 5 3" />
                       </svg>
-                      <span>{language === 'he' ? 'דבר' : 'Speak'}</span>
+                      <span>{language === 'he' ? 'דבר' : language === 'es' ? 'Hablar' : language === 'fr' ? 'Parler' : 'Speak'}</span>
                     </button>
                   )}
                 </div>
               </div>
-              <p className="text-md text-[--color-text-secondary] italic leading-relaxed font-mono pl-1.5 border-l border-white/5 mb-0.5">
+              <p className="text-md text-text-secondary italic leading-relaxed font-mono pl-1.5 border-l border-white/5 mb-0.5">
                 "{suggestion.script}"
               </p>
             </div>
@@ -366,38 +374,38 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
   return (
     <div className="glass-card flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4.5 border-b border-[--color-border] bg-white/[0.01]">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-border bg-white/[0.01]">
         <div className="flex items-center gap-2.5">
           <span className="text-base">🤖</span>
-          <h2 className="text-xs font-bold text-[--color-text-primary] uppercase tracking-wider">
+          <h2 className="text-xs font-bold text-text-primary uppercase tracking-wider">
             {t('copilotTitle', language)}
           </h2>
           {isStreaming && (
-            <div className="flex items-center gap-1.5 ml-3 px-2 py-0.5 rounded-full bg-[--color-accent-blue]/5 border border-[--color-accent-blue]/15 animate-pulse">
-              <div className="w-1.5 h-1.5 rounded-full bg-[--color-accent-blue]" />
-              <span className="text-[9px] text-[--color-accent-blue] font-bold uppercase tracking-wider animate-pulse">
+            <div className="flex items-center gap-1.5 ml-3 px-2 py-0.5 rounded-full bg-accent-blue/5 border border-accent-blue/15 animate-pulse">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent-blue" />
+              <span className="text-[9px] text-accent-blue font-bold uppercase tracking-wider animate-pulse">
                 {t('analyzingAudio', language)}
               </span>
             </div>
           )}
         </div>
-        <span className="text-[10px] font-bold text-[--color-text-muted] uppercase tracking-widest bg-white/[0.04] px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-bold text-text-secondary uppercase tracking-widest bg-white/[0.04] px-2.5 py-0.5 rounded-full border border-border">
           {suggestions.length} {t('tips', language)}
         </span>
       </div>
 
       {/* Suggestions List */}
-      <div className="flex-grow overflow-hidden relative">
-        <div ref={scrollRef} className="h-full overflow-y-auto p-5 space-y-4 scroll-smooth">
+      <div className="flex-grow overflow-hidden relative soft-edge-fade">
+        <div ref={scrollRef} className="h-full overflow-y-auto p-4 space-y-4 scroll-smooth">
           {suggestions.length === 0 && !isStreaming ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
-              <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-[--color-border] flex items-center justify-center mb-4.5 animate-float">
+              <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-border flex items-center justify-center mb-4.5 animate-float">
                 <span className="text-2xl drop-shadow-[0_2px_10px_rgba(99,102,241,0.2)]">🤖</span>
               </div>
-              <p className="text-[--color-text-muted] text-xs font-medium tracking-wide">
+              <p className="text-text-primary text-xs font-bold tracking-wide">
                 {t('coachingIdle', language)}
               </p>
-              <p className="text-[--color-text-muted] text-[10px] mt-1 opacity-70">
+              <p className="text-text-secondary text-xs mt-1">
                 {t('coachingIdleSubtext', language)}
               </p>
             </div>
@@ -409,10 +417,10 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                   const parsed = getParsedStream(streamingText);
                   if (!parsed || (!parsed.suggestion && !parsed.title)) {
                     return (
-                      <div className="glass-card coaching-card--tip p-5 animate-fade-in border border-dashed border-[--color-accent-blue]/40 bg-white/[0.01] shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
+                      <div className="glass-card coaching-card--tip p-5 animate-fade-in border border-dashed border-accent-blue/40 bg-white/[0.01] shadow-[0_4px_20px_rgba(99,102,241,0.08)]">
                         <div className="flex items-center gap-2 mb-3.5">
-                          <div className="w-2.5 h-2.5 rounded-full bg-[--color-accent-blue] animate-ping" />
-                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-[--color-accent-blue] tracking-wider">
+                          <div className="w-2.5 h-2.5 rounded-full bg-accent-blue animate-ping" />
+                          <span className="text-[10px] font-extrabold uppercase tracking-widest text-accent-blue tracking-wider">
                             {t('analyzingSpeech', language)}
                           </span>
                         </div>
@@ -426,7 +434,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
 
                   const config = getTypeConfig(parsed.type || 'tip');
                   return (
-                    <div className={`glass-card ${config.cardClass} p-5 animate-fade-in relative overflow-hidden border-dashed border-[--color-accent-blue]/40 shadow-[0_4px_24px_rgba(99,102,241,0.12)] ring-1 ring-[--color-accent-blue]/10`}>
+                    <div className={`glass-card ${config.cardClass} p-5 animate-fade-in relative overflow-hidden border-dashed border-accent-blue/40 shadow-[0_4px_24px_rgba(99,102,241,0.12)] ring-1 ring-accent-blue/10`}>
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-sm">{config.icon}</span>
                         <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ${config.badge} flex items-center gap-1.5`}>
@@ -435,15 +443,13 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                         </span>
                         {parsed.priority && (
                           <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-0.5 rounded-full border ml-auto ${getPriorityBadge(parsed.priority)}`}>
-                            {parsed.priority === 'high' ? (language === 'he' ? 'גבוה' : 'high') :
-                              parsed.priority === 'medium' ? (language === 'he' ? 'בינוני' : 'medium') :
-                                parsed.priority}
+                            {getPriorityLabel(parsed.priority, language)}
                           </span>
                         )}
                       </div>
 
                       {parsed.title && (
-                        <h3 className="text-base font-extrabold text-[--color-text-primary] mb-2 tracking-tight">
+                        <h3 className="text-base font-extrabold text-text-primary mb-2 tracking-tight">
                           {parsed.title}
                         </h3>
                       )}
@@ -451,44 +457,44 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                       {/* Suggestion Text */}
                       <div className="flex items-start justify-between gap-4">
                         {parsed.suggestion && (
-                          <p className="text-sm text-[--color-text-secondary] leading-relaxed typing-cursor font-semibold flex-grow">
+                          <p className="text-sm text-text-secondary leading-relaxed typing-cursor font-semibold flex-grow">
                             {parsed.suggestion}
                           </p>
                         )}
                         {!parsed.script && parsed.suggestion && onSpeakScript && (
                           <button
                             onClick={() => onSpeakScript(parsed.suggestion!)}
-                            className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
-                            title={language === 'he' ? 'דבר הצעת אימון' : 'Speak Suggestion'}
+                            className="flex-shrink-0 flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-accent-blue/25 to-accent-violet/25 border border-accent-blue/40 hover:from-accent-blue/35 hover:to-accent-violet/35 hover:border-accent-blue text-text-primary transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+                            title={language === 'he' ? 'דבר הצעת אימון' : language === 'es' ? 'Hablar sugerencia' : language === 'fr' ? 'Parler de suggestion' : 'Speak Suggestion'}
                           >
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue mr-1">
                               <polygon points="5 3 19 12 5 21 5 3" />
                             </svg>
-                            <span>{language === 'he' ? 'דבר הצעה' : 'Speak Suggestion'}</span>
+                            <span>{language === 'he' ? 'דבר הצעה' : language === 'es' ? 'Hablar sugerencia' : language === 'fr' ? 'Parler de suggestion' : 'Speak Suggestion'}</span>
                           </button>
                         )}
                       </div>
 
                       {parsed.script && (
                         <div className="mt-4 relative">
-                          <div className="bg-[--color-bg-secondary] rounded-xl p-3.5 border border-[--color-border] bg-opacity-80">
+                          <div className="bg-bg-secondary rounded-xl p-3.5 border border-border bg-opacity-80">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-[9px] text-[--color-text-muted] uppercase tracking-wider font-extrabold">
+                              <span className="text-[11px] text-text-secondary uppercase tracking-wider font-bold">
                                 {t('dialogueTalkTrack', language)}
                               </span>
                               {onSpeakScript && (
                                 <button
                                   onClick={() => onSpeakScript(parsed.script!)}
-                                  className="flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-[--color-accent-blue]/25 to-[--color-accent-violet]/25 border border-[--color-accent-blue]/40 hover:from-[--color-accent-blue]/35 hover:to-[--color-accent-violet]/35 hover:border-[--color-accent-blue] text-[--color-text-primary] transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
+                                  className="flex items-center justify-center gap-2 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider rounded-lg bg-gradient-to-r from-accent-blue/25 to-accent-violet/25 border border-accent-blue/40 hover:from-accent-blue/35 hover:to-accent-violet/35 hover:border-accent-blue text-text-primary transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_4px_12px_rgba(59,130,246,0.15)] cursor-pointer"
                                 >
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-[--color-accent-blue] mr-1">
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-accent-blue mr-1">
                                     <polygon points="5 3 19 12 5 21 5 3" />
                                   </svg>
-                                  <span>{language === 'he' ? 'דבר תסריט מוצע' : 'Speak Suggested Script'}</span>
+                                  <span>{language === 'he' ? 'דבר תסריט מוצע' : language === 'es' ? 'Hablar guion sugerido' : language === 'fr' ? 'Parler du script suggéré' : 'Speak Suggested Script'}</span>
                                 </button>
                               )}
                             </div>
-                            <p className="text-xs text-[--color-text-primary] italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10">
+                            <p className="text-xs text-text-primary italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10">
                               "{parsed.script}"
                             </p>
                           </div>
@@ -506,10 +512,10 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
               {previousSuggestions.length > 0 && (
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center gap-3.5 pb-1">
-                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-[--color-text-muted] whitespace-nowrap">
-                      {language === 'he' ? 'הצעות אימון קודמות' : 'Previous Coaching Suggestions'}
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary whitespace-nowrap">
+                      {language === 'he' ? 'הצעות אימון קודמות' : language === 'es' ? 'Sugerencias de asesoramiento anteriores' : language === 'fr' ? 'Suggestions de coaching précédentes' : 'Previous Coaching Suggestions'}
                     </span>
-                    <div className="flex-grow h-px bg-[--color-border] opacity-20" />
+                    <div className="flex-grow h-px bg-border opacity-20" />
                   </div>
 
                   <div className="space-y-4">
@@ -530,7 +536,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
         </div>
 
         {/* Soft Scroll-Gradient Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[--color-bg-secondary] to-transparent pointer-events-none opacity-60" />
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-bg-secondary to-transparent pointer-events-none opacity-60" />
       </div>
     </div>
   );

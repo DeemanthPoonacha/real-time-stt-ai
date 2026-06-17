@@ -1,0 +1,110 @@
+{
+  "objection_categories": [
+    {
+      "category": "Prix & Budget",
+      "objections": [
+        {
+          "trigger_phrases": ["trop cher", "hors budget", "pas les moyens", "coûte trop cher", "option moins chère", "prix trop élevé"],
+          "objection": "C'est trop cher / Hors budget",
+          "response_strategy": "Recadrer le coût comme un investissement. Quantifier le coût de leur problème actuel.",
+          "primary_script": "Je comprends tout à fait que le budget soit un facteur clé. Permettez-moi de vous poser une question — vous avez mentionné que votre équipe consacre environ [X heures/semaine] à gérer [point de douleur]. Au coût horaire moyen de votre équipe, cela représente environ $[Y] par mois en perte de productivité. CloudSync Pro à $25/utilisateur/mois vous ferait en réalité économiser $[Z] net. Est-ce que cela vous aiderait si je préparais une analyse de ROI personnalisée ?",
+          "alternative_scripts": [
+            "C'est une préoccupation légitime. Beaucoup de nos clients ont eu la même réaction au début. Ce qu'ils ont constaté, c'est que CloudSync Pro a permis de regrouper 3 à 4 outils distincts qu'ils payaient déjà — partage de fichiers, sauvegarde, conformité et collaboration. L'effet net a été une réduction de 40% de leurs dépenses totales en outils. Seriez-vous ouvert à une comparaison des coûts ?",
+            "Je vous entends. Avant de mettre la question du prix de côté, serait-il utile de regarder notre plan Starter ? Il est à $12/utilisateur/mois et couvre les fonctionnalités de base que vous avez mentionnées. Beaucoup d'équipes commencent par là et passent à l'offre supérieure lorsqu'elles constatent le ROI."
+          ],
+          "key_tactics": ["Quantifier le coût de l'inaction", "Comparer avec les dépenses actuelles totales", "Proposer des options de tarification par paliers", "Fournir un calculateur de ROI"]
+        },
+        {
+          "trigger_phrases": ["alternative gratuite", "open source", "pourquoi payer", "version gratuite"],
+          "objection": "Pourquoi devrions-nous payer alors qu'il existe des alternatives gratuites ?",
+          "response_strategy": "Mettre en évidence les coûts cachés des outils gratuits — risques de sécurité, absence de support, fonctionnalités limitées.",
+          "primary_script": "C'est une excellente question. Les outils gratuits conviennent très bien pour un usage individuel, mais lorsque vous gérez une équipe de [X] personnes, les coûts cachés s'accumulent rapidement : l'absence de contrôles administrateur entraîne des risques de sécurité, l'absence de SLA signifie que toute panne impacte l'ensemble de votre équipe, et l'absence de support signifie que votre équipe informatique se transforme en helpdesk. Nos clients qui ont abandonné les outils gratuits ont généralement économisé plus de 15 heures par semaine en support informatique seul. Souhaitez-vous voir un exemple concret ?",
+          "alternative_scripts": [
+            "Les outils gratuits sont parfaits pour démarrer. Les difficultés surviennent lorsque vous avez besoin de certifications de conformité pour l'audit d'un client, ou lorsqu'un membre de l'équipe supprime accidentellement un fichier critique et qu'il n'y a pas d'historique de versions. C'est dans ces moments-là que l'investissement dans une vraie solution est rentabilisé de nombreuses fois."
+          ],
+          "key_tactics": ["Mettre en évidence les coûts cachés et les risques", "Lacunes en matière de sécurité et de conformité", "Différences de support et de SLA"]
+        }
+      ]
+    },
+    {
+      "category": "Concurrent & Statu Quo",
+      "objections": [
+        {
+          "trigger_phrases": ["utilise déjà", "satisfait de", "utilise dropbox", "utilise sharepoint", "utilise google drive", "utilise box", "a déjà une solution", "ne cherche pas à changer"],
+          "objection": "Nous utilisons déjà [Concurrent] et nous en sommes satisfaits",
+          "response_strategy": "Reconnaître, puis chercher à identifier des points de friction cachés. Ne pas dénigrer le concurrent.",
+          "primary_script": "C'est parfait — [Concurrent] est un outil solide et je ne suis pas là pour le dénigrer. Simple curiosité — si je pouvais vous montrer un moyen de [résoudre le point de friction spécifique qu'ils ont mentionné] tout en conservant tout ce que votre équipe apprécie déjà chez [Concurrent], est-ce que cela vaudrait un échange de 15 minutes ? Beaucoup de nos clients utilisaient [Concurrent] auparavant et ont été surpris de la différence.",
+          "alternative_scripts": [
+            "J'apprécie cette fidélité — cela montre que vous accordez de l'importance à la stabilité. Une question rapide : à quand remonte la dernière fois que vous avez évalué si [Concurrent] répondait toujours à vos besoins ? Les entreprises grandissent vite, et parfois l'outil qui convenait pour 20 personnes n'est plus adapté pour 100. Seriez-vous ouvert à une rapide comparaison ?",
+            "Je comprends tout à fait. Par curiosité, sur une échelle de 1 à 10, comment votre équipe évaluerait-elle sa satisfaction vis-à-vis de [Concurrent] ? [Si moins de 9] Intéressant — que faudrait-il pour atteindre 10 ? C'est précisément sur cet écart que nous apportons généralement le plus de valeur."
+          ],
+          "key_tactics": ["Ne pas dénigrer les concurrents", "Trouver l'écart de satisfaction", "Mettre en avant la facilité de migration", "Proposer une comparaison comparative"]
+        }
+      ]
+    },
+    {
+      "category": "Calendrier & Urgence",
+      "objections": [
+        {
+          "trigger_phrases": ["pas le bon moment", "peut-être le trimestre prochain", "trop occupé", "rappeler plus tard", "pas en ce moment", "revoir plus tard"],
+          "objection": "Ce n'est pas le bon moment / Rappelez plus tard",
+          "response_strategy": "Créer de l'urgence en quantifiant le coût de l'attente. Proposer une prochaine étape à faible engagement.",
+          "primary_script": "Je respecte totalement le fait que le timing est primordial. Juste pour comprendre — quand vous dites 'pas le bon moment', est-ce que le défi dont nous avons parlé n'est pas une priorité, ou êtes-vous simplement débordé en ce moment ? [Si débordé] Et si je vous envoyais une présentation vidéo de 2 minutes que vous pourriez regarder quand vous le souhaitez ? De cette façon, vous aurez toutes les informations et nous pourrons reprendre contact au bon moment. Est-ce que le mois prochain conviendrait ?",
+          "alternative_scripts": [
+            "Je comprends que vous soyez occupé. Voici ce que j'ai pu constater cependant — les entreprises qui attendent le 'trimestre prochain' pour résoudre leur [point de douleur] finissent par dépenser 3 fois plus car le problème s'aggrave. Et si nous faisions un essai pilote rapide de 15 minutes ? Aucun engagement, et si votre équipe n'est pas conquise, nous en restons là. Qu'en pensez-vous ?",
+            "Aucun problème. Avant de vous laisser, une seule réflexion — vous avez mentionné que [point de douleur spécifique] vous coûte [X]. Chaque mois où cela continue représente $[Y] de productivité perdue. Je regretterais que vous regardiez en arrière dans 6 mois en souhaitant avoir commencé plus tôt. Pouvons-nous au moins bloquer un créneau provisoire pour le [date spécifique] ?"
+          ],
+          "key_tactics": ["Diagnostiquer la vraie raison", "Quantifier le coût du retard", "Offrir une étape suivante à faible engagement", "Réserver une date de suivi précise"]
+        }
+      ]
+    },
+    {
+      "category": "Autorité & Prise de Décision",
+      "objections": [
+        {
+          "trigger_phrases": ["pas le décideur", "dois en parler à mon responsable", "besoin d'approbation", "voir avec mon manager", "pas ma décision", "en discuter en interne"],
+          "objection": "Je dois en parler à mon responsable / Je ne suis pas le décideur",
+          "response_strategy": "Les équiper pour vendre en interne. Proposer de participer à une réunion avec le décideur.",
+          "primary_script": "C'est tout à fait logique — les décisions de ce type doivent impliquer les bonnes parties prenantes. Voici comment je peux vous aider : je vais préparer une synthèse d'une page qui met en évidence le ROI spécifiquement pour votre entreprise, ainsi qu'une comparaison avec ce que vous utilisez aujourd'hui. De cette façon, vous pourrez la transmettre et cela facilitera la discussion. Serait-il également utile que je me joigne à un rapide appel avec votre [manager/CTO] pour répondre directement aux questions techniques ?",
+          "alternative_scripts": [
+            "Je comprends tout à fait. D'après votre expérience, à quoi votre [manager/CTO] accorde-t-il généralement le plus d'importance lors de l'évaluation de nouveaux outils — s'agit-il des économies, de la sécurité ou de la facilité d'adoption ? [Selon la réponse] Parfait, laissez-moi adapter nos documents dans ce sens. J'y joindrai également une étude de cas d'une entreprise de votre secteur. Seriez-vous en mesure de lui transmettre cela cette semaine ?",
+            "Bien sûr. Vous connaissez votre organisation mieux que quiconque — selon vous, quel serait l'argument le plus convaincant pour votre décideur ? Est-ce l'aspect [économies/sécurité/vitesse] ? Laissez-moi vous fournir les données précises pour appuyer votre dossier."
+          ],
+          "key_tactics": ["Les équiper en tant que défenseur interne", "Proposer de participer à la réunion des parties prenantes", "Fournir des documents personnalisés", "Comprendre les critères de décision"]
+        }
+      ]
+    },
+    {
+      "category": "Confiance & Sécurité",
+      "objections": [
+        {
+          "trigger_phrases": ["inquiétudes sur la sécurité", "confidentialité des données", "où sont stockées les données", "conformité", "RGPD", "HIPAA", "SOC 2", "chiffrement", "confiance", "sûr"],
+          "objection": "Nous avons des inquiétudes concernant la sécurité des données / la conformité",
+          "response_strategy": "Mettre en avant les certifications et l'architecture. Proposer une réunion de revue de sécurité.",
+          "primary_script": "La sécurité est notre priorité absolue — je suis ravi que vous souleviez ce point. CloudSync Pro utilise un chiffrement de bout en bout AES-256 avec une architecture zero-knowledge, ce qui signifie que nous ne pouvons littéralement pas accéder à vos fichiers. Nous sommes certifiés SOC 2 Type II, conformes au RGPD et compatibles HIPAA. Nous proposons également des options de localisation des données — vos données restent dans la région de votre choix. Serait-il utile que j'organise un appel avec notre équipe de sécurité pour vous présenter notre architecture ?",
+          "alternative_scripts": [
+            "Excellente question, et pour être honnête, c'est l'une des principales raisons pour lesquelles les entreprises passent CHEZ nous. Contrairement à [concurrent], nous utilisons un chiffrement zero-knowledge : vos fichiers sont chiffrés avant de quitter votre appareil, et nous ne détenons pas les clés. De plus, nous venons de passer notre troisième audit SOC 2. Je peux vous envoyer notre livre blanc sur la sécurité — est-ce que cela vous aiderait ?",
+            "Je prends cela très au sérieux. Voici ce que nous fournissons : journaux d'audit complets, autorisations de partage contrôlées par l'administrateur, capacité d'effacement à distance et rapports de conformité automatiques. HealthFirst, une entreprise de santé avec des exigences strictes en matière de HIPAA, a passé son audit 50% plus vite après avoir implémenté CloudSync Pro. Souhaitez-vous que je vous mette en relation avec leur directeur informatique pour en parler ?"
+          ],
+          "key_tactics": ["Mettre en avant les certifications", "Expliquer l'architecture de chiffrement", "Proposer un appel avec l'équipe sécurité", "Fournir la documentation de conformité"]
+        }
+      ]
+    },
+    {
+      "category": "Scepticisme & Hésitation",
+      "objections": [
+        {
+          "trigger_phrases": ["envoyer plus d'infos", "dois y réfléchir", "besoin de vérifier", "je reviendrai vers vous", "besoin de temps"],
+          "objection": "Envoyez-moi des informations / J'ai besoin d'y réfléchir",
+          "response_strategy": "Diagnostiquer la véritable préoccupation derrière l'attente. Fournir des documents ciblés et assurer un suivi rigoureux.",
+          "primary_script": "Absolument, je vous envoie cela immédiatement. Juste pour m'assurer de vous envoyer les informations les plus pertinentes — quel est le principal aspect que vous aimeriez évaluer ? Est-ce [les tarifs/les fonctionnalités/la sécurité/l'intégration] ? [Selon la réponse] Parfait. J'inclurai un comparatif personnalisé basé sur ce point. Et pour éviter que cela ne tombe aux oubliettes — est-ce que jeudi à 14h conviendrait pour un rapide appel de suivi de 10 minutes ? De cette façon, je pourrai répondre aux questions qui se poseront après votre lecture.",
+          "alternative_scripts": [
+            "Bien sûr. Avant que je ne prépare cela, puis-je vous demander sur quoi vous devez réfléchir en particulier ? Est-ce la compatibilité technique, le tarif, ou autre chose ? Je souhaite m'assurer que les documents que je vous envoie répondent précisément à vos interrogations, plutôt que de simples brochures génériques.",
+            "Ravi de vous envoyer des informations. Voici ce que j'inclurai : une présentation du produit, un calculateur de ROI pré-rempli avec vos chiffres, et une étude de cas de [entreprise similaire]. Je vais également bloquer 15 minutes le [jour spécifique] pour notre suivi — est-ce que cela vous convient ?"
+          ],
+          "key_tactics": ["Diagnostiquer la véritable objection", "Envoyer des documents ciblés", "Fixer un suivi précis", "Créer un micro-engagement"]
+        }
+      ]
+    }
+  ]
+}

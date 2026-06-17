@@ -5,30 +5,30 @@
    ============================================================ */
 
 @theme {
-  /* --- Curated Harmonious Theme Palette --- */
-  --color-bg-primary: #050814;
-  --color-bg-secondary: #080c1c;
-  --color-bg-card: rgba(10, 15, 35, 0.45);
-  --color-bg-glass: rgba(255, 255, 255, 0.015);
-  --color-bg-glass-hover: rgba(255, 255, 255, 0.04);
+  /* --- Curated Harmonious Theme Palette mapped to CSS Custom Properties --- */
+  --color-bg-primary: var(--color-bg-primary);
+  --color-bg-secondary: var(--color-bg-secondary);
+  --color-bg-card: var(--color-bg-card);
+  --color-bg-glass: var(--color-bg-glass);
+  --color-bg-glass-hover: var(--color-bg-glass-hover);
 
-  --color-border: rgba(255, 255, 255, 0.05);
-  --color-border-bright: rgba(99, 102, 241, 0.2);
+  --color-border: var(--color-border);
+  --color-border-bright: var(--color-border-bright);
 
-  --color-text-primary: #f8fafc;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #475569;
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
 
-  --color-accent-blue: #38bdf8;
-  --color-accent-blue-glow: rgba(56, 189, 248, 0.2);
-  --color-accent-emerald: #10b981;
-  --color-accent-emerald-glow: rgba(16, 185, 129, 0.2);
-  --color-accent-amber: #fbbf24;
-  --color-accent-amber-glow: rgba(251, 191, 36, 0.2);
-  --color-accent-rose: #f43f5e;
-  --color-accent-rose-glow: rgba(244, 63, 94, 0.2);
-  --color-accent-violet: #a78bfa;
-  --color-accent-violet-glow: rgba(167, 139, 250, 0.2);
+  --color-accent-blue: var(--color-accent-blue);
+  --color-accent-blue-glow: var(--color-accent-blue-glow);
+  --color-accent-emerald: var(--color-accent-emerald);
+  --color-accent-emerald-glow: var(--color-accent-emerald-glow);
+  --color-accent-amber: var(--color-accent-amber);
+  --color-accent-amber-glow: var(--color-accent-amber-glow);
+  --color-accent-rose: var(--color-accent-rose);
+  --color-accent-rose-glow: var(--color-accent-rose-glow);
+  --color-accent-violet: var(--color-accent-violet);
+  --color-accent-violet-glow: var(--color-accent-violet-glow);
 
   /* --- Typography --- */
   --font-sans: 'Inter', 'Noto Sans Hebrew', system-ui, sans-serif;
@@ -42,39 +42,207 @@
 }
 
 :root {
-  --bg-radial-1: rgba(56, 189, 248, 0.07);
-  --bg-radial-2: rgba(167, 139, 250, 0.05);
-  --bg-radial-3: rgba(99, 102, 241, 0.03);
+  /* --- Raw Color Design Tokens --- */
+  /* Light Theme Raw Variables */
+  --raw-bg-primary-light: #f8fafc;
+  --raw-bg-secondary-light: #ffffff;
+  --raw-bg-card-light: rgba(255, 255, 255, 0.7);
+  --raw-bg-glass-light: rgba(15, 23, 42, 0.015);
+  --raw-bg-glass-hover-light: rgba(15, 23, 42, 0.04);
+  --raw-border-light: rgba(15, 23, 42, 0.08);
+  --raw-border-bright-light: rgba(99, 102, 241, 0.35);
+  --raw-text-primary-light: #0f172a;
+  --raw-text-secondary-light: #475569;
+  --raw-text-muted-light: #94a3b8;
+  --raw-accent-blue-light: #0284c7;
+  --raw-accent-blue-glow-light: rgba(2, 132, 199, 0.15);
+  --raw-accent-emerald-light: #059669;
+  --raw-accent-emerald-glow-light: rgba(5, 150, 105, 0.15);
+  --raw-accent-amber-light: #d97706;
+  --raw-accent-amber-glow-light: rgba(217, 119, 6, 0.15);
+  --raw-accent-rose-light: #e11d48;
+  --raw-accent-rose-glow-light: rgba(225, 29, 72, 0.15);
+  --raw-accent-violet-light: #7c3aed;
+  --raw-accent-violet-glow-light: rgba(124, 58, 237, 0.15);
+  --raw-bg-radial-1-light: rgba(14, 165, 233, 0.08);
+  --raw-bg-radial-2-light: rgba(139, 92, 246, 0.06);
+  --raw-bg-radial-3-light: rgba(99, 102, 241, 0.04);
+
+  /* Dark Theme Raw Variables */
+  --raw-bg-primary-dark: #050814;
+  --raw-bg-secondary-dark: #080c1c;
+  --raw-bg-card-dark: rgba(10, 15, 35, 0.55);
+  --raw-bg-glass-dark: rgba(255, 255, 255, 0.015);
+  --raw-bg-glass-hover-dark: rgba(255, 255, 255, 0.04);
+  --raw-border-dark: rgba(255, 255, 255, 0.06);
+  --raw-border-bright-dark: rgba(99, 102, 241, 0.2);
+  --raw-text-primary-dark: #f8fafc;
+  --raw-text-secondary-dark: #94a3b8;
+  --raw-text-muted-dark: #475569;
+  --raw-accent-blue-dark: #38bdf8;
+  --raw-accent-blue-glow-dark: rgba(56, 189, 248, 0.2);
+  --raw-accent-emerald-dark: #10b981;
+  --raw-accent-emerald-glow-dark: rgba(16, 185, 129, 0.2);
+  --raw-accent-amber-dark: #fbbf24;
+  --raw-accent-amber-glow-dark: rgba(251, 191, 36, 0.2);
+  --raw-accent-rose-dark: #f43f5e;
+  --raw-accent-rose-glow-dark: rgba(244, 63, 94, 0.2);
+  --raw-accent-violet-dark: #a78bfa;
+  --raw-accent-violet-glow-dark: rgba(167, 139, 250, 0.2);
+  --raw-bg-radial-1-dark: rgba(56, 189, 248, 0.07);
+  --raw-bg-radial-2-dark: rgba(167, 139, 250, 0.05);
+  --raw-bg-radial-3-dark: rgba(99, 102, 241, 0.03);
+
+  /* Default / Fallback assignment for older browsers (dark mode default) */
+  --color-bg-primary: var(--raw-bg-primary-dark);
+  --color-bg-secondary: var(--raw-bg-secondary-dark);
+  --color-bg-card: var(--raw-bg-card-dark);
+  --color-bg-glass: var(--raw-bg-glass-dark);
+  --color-bg-glass-hover: var(--raw-bg-glass-hover-dark);
+  --color-border: var(--raw-border-dark);
+  --color-border-bright: var(--raw-border-bright-dark);
+  --color-text-primary: var(--raw-text-primary-dark);
+  --color-text-secondary: var(--raw-text-secondary-dark);
+  --color-text-muted: var(--raw-text-muted-dark);
+  --color-accent-blue: var(--raw-accent-blue-dark);
+  --color-accent-blue-glow: var(--raw-accent-blue-glow-dark);
+  --color-accent-emerald: var(--raw-accent-emerald-dark);
+  --color-accent-emerald-glow: var(--raw-accent-emerald-glow-dark);
+  --color-accent-amber: var(--raw-accent-amber-dark);
+  --color-accent-amber-glow: var(--raw-accent-amber-glow-dark);
+  --color-accent-rose: var(--raw-accent-rose-dark);
+  --color-accent-rose-glow: var(--raw-accent-rose-glow-dark);
+  --color-accent-violet: var(--raw-accent-violet-dark);
+  --color-accent-violet-glow: var(--raw-accent-violet-glow-dark);
+  --bg-radial-1: var(--raw-bg-radial-1-dark);
+  --bg-radial-2: var(--raw-bg-radial-2-dark);
+  --bg-radial-3: var(--raw-bg-radial-3-dark);
+
+  /* Scrollbar configuration custom tokens */
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+  --scrollbar-track: transparent;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  scrollbar-width: thin;
+
+  /* Native color-scheme support declaration */
+  color-scheme: light dark;
 }
 
-[data-theme='light'] {
-  --color-bg-primary: #f8fafc;
-  --color-bg-secondary: #ffffff;
-  --color-bg-card: rgba(255, 255, 255, 0.75);
-  --color-bg-glass: rgba(15, 23, 42, 0.015);
-  --color-bg-glass-hover: rgba(15, 23, 42, 0.04);
+/* Fallback for prefers-color-scheme light when light-dark() is not supported */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-bg-primary: var(--raw-bg-primary-light);
+    --color-bg-secondary: var(--raw-bg-secondary-light);
+    --color-bg-card: var(--raw-bg-card-light);
+    --color-bg-glass: var(--raw-bg-glass-light);
+    --color-bg-glass-hover: var(--raw-bg-glass-hover-light);
+    --color-border: var(--raw-border-light);
+    --color-border-bright: var(--raw-border-bright-light);
+    --color-text-primary: var(--raw-text-primary-light);
+    --color-text-secondary: var(--raw-text-secondary-light);
+    --color-text-muted: var(--raw-text-muted-light);
+    --color-accent-blue: var(--raw-accent-blue-light);
+    --color-accent-blue-glow: var(--raw-accent-blue-glow-light);
+    --color-accent-emerald: var(--raw-accent-emerald-light);
+    --color-accent-emerald-glow: var(--raw-accent-emerald-glow-light);
+    --color-accent-amber: var(--raw-accent-amber-light);
+    --color-accent-amber-glow: var(--raw-accent-amber-glow-light);
+    --color-accent-rose: var(--raw-accent-rose-light);
+    --color-accent-rose-glow: var(--raw-accent-rose-glow-light);
+    --color-accent-violet: var(--raw-accent-violet-light);
+    --color-accent-violet-glow: var(--raw-accent-violet-glow-light);
+    --bg-radial-1: var(--raw-bg-radial-1-light);
+    --bg-radial-2: var(--raw-bg-radial-2-light);
+    --bg-radial-3: var(--raw-bg-radial-3-light);
+    --scrollbar-thumb: rgba(15, 23, 42, 0.15);
+  }
+}
 
-  --color-border: rgba(15, 23, 42, 0.08);
-  --color-border-bright: rgba(99, 102, 241, 0.35);
+/* Explicit UI selectors overrides (synced via documentElement data-theme) */
+html[data-theme='light'] {
+  color-scheme: light;
+  --color-bg-primary: var(--raw-bg-primary-light);
+  --color-bg-secondary: var(--raw-bg-secondary-light);
+  --color-bg-card: var(--raw-bg-card-light);
+  --color-bg-glass: var(--raw-bg-glass-light);
+  --color-bg-glass-hover: var(--raw-bg-glass-hover-light);
+  --color-border: var(--raw-border-light);
+  --color-border-bright: var(--raw-border-bright-light);
+  --color-text-primary: var(--raw-text-primary-light);
+  --color-text-secondary: var(--raw-text-secondary-light);
+  --color-text-muted: var(--raw-text-muted-light);
+  --color-accent-blue: var(--raw-accent-blue-light);
+  --color-accent-blue-glow: var(--raw-accent-blue-glow-light);
+  --color-accent-emerald: var(--raw-accent-emerald-light);
+  --color-accent-emerald-glow: var(--raw-accent-emerald-glow-light);
+  --color-accent-amber: var(--raw-accent-amber-light);
+  --color-accent-amber-glow: var(--raw-accent-amber-glow-light);
+  --color-accent-rose: var(--raw-accent-rose-light);
+  --color-accent-rose-glow: var(--raw-accent-rose-glow-light);
+  --color-accent-violet: var(--raw-accent-violet-light);
+  --color-accent-violet-glow: var(--raw-accent-violet-glow-light);
+  --bg-radial-1: var(--raw-bg-radial-1-light);
+  --bg-radial-2: var(--raw-bg-radial-2-light);
+  --bg-radial-3: var(--raw-bg-radial-3-light);
+  --scrollbar-thumb: rgba(15, 23, 42, 0.15);
+}
 
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94a3b8;
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg-primary: var(--raw-bg-primary-dark);
+  --color-bg-secondary: var(--raw-bg-secondary-dark);
+  --color-bg-card: var(--raw-bg-card-dark);
+  --color-bg-glass: var(--raw-bg-glass-dark);
+  --color-bg-glass-hover: var(--raw-bg-glass-hover-dark);
+  --color-border: var(--raw-border-dark);
+  --color-border-bright: var(--raw-border-bright-dark);
+  --color-text-primary: var(--raw-text-primary-dark);
+  --color-text-secondary: var(--raw-text-secondary-dark);
+  --color-text-muted: var(--raw-text-muted-dark);
+  --color-accent-blue: var(--raw-accent-blue-dark);
+  --color-accent-blue-glow: var(--raw-accent-blue-glow-dark);
+  --color-accent-emerald: var(--raw-accent-emerald-dark);
+  --color-accent-emerald-glow: var(--raw-accent-emerald-glow-dark);
+  --color-accent-amber: var(--raw-accent-amber-dark);
+  --color-accent-amber-glow: var(--raw-accent-amber-glow-dark);
+  --color-accent-rose: var(--raw-accent-rose-dark);
+  --color-accent-rose-glow: var(--raw-accent-rose-glow-dark);
+  --color-accent-violet: var(--raw-accent-violet-dark);
+  --color-accent-violet-glow: var(--raw-accent-violet-glow-dark);
+  --bg-radial-1: var(--raw-bg-radial-1-dark);
+  --bg-radial-2: var(--raw-bg-radial-2-dark);
+  --bg-radial-3: var(--raw-bg-radial-3-dark);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.08);
+}
 
-  --color-accent-blue: #0284c7;
-  --color-accent-blue-glow: rgba(2, 132, 199, 0.15);
-  --color-accent-emerald: #059669;
-  --color-accent-emerald-glow: rgba(5, 150, 105, 0.15);
-  --color-accent-amber: #d97706;
-  --color-accent-amber-glow: rgba(217, 119, 6, 0.15);
-  --color-accent-rose: #e11d48;
-  --color-accent-rose-glow: rgba(225, 29, 72, 0.15);
-  --color-accent-violet: #7c3aed;
-  --color-accent-violet-glow: rgba(124, 58, 237, 0.15);
-
-  --bg-radial-1: rgba(14, 165, 233, 0.08);
-  --bg-radial-2: rgba(139, 92, 246, 0.06);
-  --bg-radial-3: rgba(99, 102, 241, 0.04);
+/* Native progressive enhancement styling with light-dark() */
+@supports (color: light-dark(white, black)) {
+  :root {
+    --color-bg-primary: light-dark(var(--raw-bg-primary-light), var(--raw-bg-primary-dark));
+    --color-bg-secondary: light-dark(var(--raw-bg-secondary-light), var(--raw-bg-secondary-dark));
+    --color-bg-card: light-dark(var(--raw-bg-card-light), var(--raw-bg-card-dark));
+    --color-bg-glass: light-dark(var(--raw-bg-glass-light), var(--raw-bg-glass-dark));
+    --color-bg-glass-hover: light-dark(var(--raw-bg-glass-hover-light), var(--raw-bg-glass-hover-dark));
+    --color-border: light-dark(var(--raw-border-light), var(--raw-border-dark));
+    --color-border-bright: light-dark(var(--raw-border-bright-light), var(--raw-border-bright-dark));
+    --color-text-primary: light-dark(var(--raw-text-primary-light), var(--raw-text-primary-dark));
+    --color-text-secondary: light-dark(var(--raw-text-secondary-light), var(--raw-text-secondary-dark));
+    --color-text-muted: light-dark(var(--raw-text-muted-light), var(--raw-text-muted-dark));
+    --color-accent-blue: light-dark(var(--raw-accent-blue-light), var(--raw-accent-blue-dark));
+    --color-accent-blue-glow: light-dark(var(--raw-accent-blue-glow-light), var(--raw-accent-blue-glow-dark));
+    --color-accent-emerald: light-dark(var(--raw-accent-emerald-light), var(--raw-accent-emerald-dark));
+    --color-accent-emerald-glow: light-dark(var(--raw-accent-emerald-glow-light), var(--raw-accent-emerald-glow-dark));
+    --color-accent-amber: light-dark(var(--raw-accent-amber-light), var(--raw-accent-amber-dark));
+    --color-accent-amber-glow: light-dark(var(--raw-accent-amber-glow-light), var(--raw-accent-amber-glow-dark));
+    --color-accent-rose: light-dark(var(--raw-accent-rose-light), var(--raw-accent-rose-dark));
+    --color-accent-rose-glow: light-dark(var(--raw-accent-rose-glow-light), var(--raw-accent-rose-glow-dark));
+    --color-accent-violet: light-dark(var(--raw-accent-violet-light), var(--raw-accent-violet-dark));
+    --color-accent-violet-glow: light-dark(var(--raw-accent-violet-glow-light), var(--raw-accent-violet-glow-dark));
+    --bg-radial-1: light-dark(var(--raw-bg-radial-1-light), var(--raw-bg-radial-1-dark));
+    --bg-radial-2: light-dark(var(--raw-bg-radial-2-light), var(--raw-bg-radial-2-dark));
+    --bg-radial-3: light-dark(var(--raw-bg-radial-3-light), var(--raw-bg-radial-3-dark));
+    --scrollbar-thumb: light-dark(rgba(15, 23, 42, 0.15), rgba(255, 255, 255, 0.08));
+  }
 }
 
 /* ============================================================
@@ -113,26 +281,39 @@ body {
   font-family: 'Noto Sans Hebrew', 'Inter', system-ui, sans-serif;
 }
 
+/* Custom Accessibility Focus outlines */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--color-accent-blue);
+  outline-offset: 2.5px;
+}
+
 /* ============================================================
    Scrollbar Customization
    ============================================================ */
 
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
+/* Legacy fallback wrapper for WebKit/Blink engines */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 99px;
-}
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 99px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.12);
+  ::-webkit-scrollbar-thumb:hover {
+    background: light-dark(rgba(15, 23, 42, 0.3), rgba(255, 255, 255, 0.18));
+  }
 }
 
 /* ============================================================
@@ -602,4 +783,32 @@ body {
   background: rgba(100, 116, 139, 0.1);
   color: var(--color-text-muted);
   border: 1px solid rgba(100, 116, 139, 0.15);
+}
+
+/* ============================================================
+   Soft Edge Content Fade Mask (indicating scrollability)
+   ============================================================ */
+.soft-edge-fade {
+  mask-image: linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 12px, black calc(100% - 12px), transparent);
+}
+
+/* ============================================================
+   Playbook Match Glow Animation
+   ============================================================ */
+@keyframes playbook-match-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.15), 0 4px 12px rgba(0, 0, 0, 0.3);
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(99, 102, 241, 0.05);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-color: var(--color-accent-blue);
+    background: rgba(99, 102, 241, 0.12);
+  }
+}
+
+.playbook-match-pulse {
+  animation: playbook-match-glow 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
