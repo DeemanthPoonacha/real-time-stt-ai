@@ -431,10 +431,10 @@ class RAGEngine:
                                 else:
                                     text_parts.append(f"{k}: {json.dumps(v)}")
                             text = f"[{prefix}]\n" + "\n".join(text_parts)
-                            _add_fallback_document(text, prefix, i)
+                            _add_document(text, prefix, i)
                         elif isinstance(item, str):
                             text = f"[{prefix}]\n{item}"
-                            _add_fallback_document(text, prefix, i)
+                            _add_document(text, prefix, i)
                         else:
                             _flatten_fallback(item, f"{prefix}[{i}]")
                 elif isinstance(obj, str) and len(obj) > 20:
