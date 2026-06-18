@@ -30,12 +30,13 @@ class TranscriptSegment:
     """A single transcribed segment with metadata."""
 
     def __init__(self, text: str, start: float = 0.0, end: float = 0.0,
-                 language: str = "en", confidence: float = 0.0):
+                 language: str = "en", confidence: float = 0.0, is_final: bool = True):
         self.text = text
         self.start = start
         self.end = end
         self.language = language
         self.confidence = confidence
+        self.is_final = is_final
         self.timestamp = time.time()
 
     def to_dict(self) -> dict:
@@ -46,6 +47,7 @@ class TranscriptSegment:
             "language": self.language,
             "confidence": self.confidence,
             "timestamp": self.timestamp,
+            "is_final": self.is_final,
         }
 
 
@@ -286,7 +288,8 @@ class DeepgramStreamSession(BaseSTTStreamSession):
             "encoding": "linear16",
             "sample_rate": str(settings.AUDIO_SAMPLE_RATE),
             "channels": str(settings.AUDIO_CHANNELS),
-            "endpointing": "300"
+            "endpointing": "300",
+            "interim_results": "true"
         }
         if lang:
             params["language"] = lang
@@ -354,11 +357,12 @@ class DeepgramStreamSession(BaseSTTStreamSession):
                 if alternatives:
                     text = alternatives[0].get("transcript", "").strip()
                     confidence = alternatives[0].get("confidence", 0.0)
-                    if text and is_final:
+                    if text:
                         segment = TranscriptSegment(
                             text=text,
                             language=self.language or "unknown",
-                            confidence=confidence
+                            confidence=confidence,
+                            is_final=is_final
                         )
                         await self.on_transcript(segment)
         except asyncio.CancelledError:

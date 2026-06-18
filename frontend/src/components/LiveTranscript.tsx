@@ -11,22 +11,23 @@ interface TranscriptSegment {
 interface LiveTranscriptProps {
   segments: TranscriptSegment[];
   language: string;
+  interimTranscript?: { text: string; speaker: string } | null;
 }
 
 /**
  * LiveTranscript — Scrolling live dialogue container.
  * Features distinct avatars for Rep vs Prospect, RTL support, and elegant timing indicators.
  */
-export default function LiveTranscript({ segments, language }: LiveTranscriptProps) {
+export default function LiveTranscript({ segments, language, interimTranscript }: LiveTranscriptProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isRTL = language === 'he';
 
-  // Auto-scroll to bottom on new segments
+  // Auto-scroll to bottom on new segments or live interim speech updates
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [segments]);
+  }, [segments, interimTranscript]);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
@@ -83,7 +84,7 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
           className="h-full overflow-y-auto p-4 space-y-3.5 scroll-smooth"
           dir={isRTL ? 'rtl' : 'ltr'}
         >
-          {segments.length === 0 ? (
+          {segments.length === 0 && !interimTranscript ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
               <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-border flex items-center justify-center mb-4.5 animate-float">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-text-secondary">
@@ -100,33 +101,60 @@ export default function LiveTranscript({ segments, language }: LiveTranscriptPro
               </p>
             </div>
           ) : (
-            segments.map((segment, index) => {
-              const config = getSpeakerConfig(segment.speaker);
-              return (
-                <div
-                  key={index}
-                  className={`transcript-segment ${config.segmentClass} flex flex-col gap-1.5`}
-                  style={{ animationDelay: `${index * 0.04}s` }}
-                >
-                  {/* Speaker Header */}
-                  <div className="flex items-center gap-2">
-                    <div className={`speaker-avatar ${config.avatarClass} flex-shrink-0`}>
-                      {config.avatarText}
+            <>
+              {segments.map((segment, index) => {
+                const config = getSpeakerConfig(segment.speaker);
+                return (
+                  <div
+                    key={index}
+                    className={`transcript-segment ${config.segmentClass} flex flex-col gap-1.5`}
+                    style={{ animationDelay: `${index * 0.04}s` }}
+                  >
+                    {/* Speaker Header */}
+                    <div className="flex items-center gap-2">
+                      <div className={`speaker-avatar ${config.avatarClass} flex-shrink-0`}>
+                        {config.avatarText}
+                      </div>
+                      <span className={`text-xs font-bold ${config.colorClass} uppercase tracking-wider`}>
+                        {config.label}
+                      </span>
+                      <span className="text-[10px] text-text-secondary font-semibold ml-auto font-mono">
+                        {segment.timestamp ? formatTime(segment.timestamp) : ''}
+                      </span>
                     </div>
-                    <span className={`text-xs font-bold ${config.colorClass} uppercase tracking-wider`}>
-                      {config.label}
-                    </span>
-                    <span className="text-[10px] text-text-secondary font-semibold ml-auto font-mono">
-                      {segment.timestamp ? formatTime(segment.timestamp) : ''}
-                    </span>
-                  </div>
 
-                  <p className="text-sm text-text-primary leading-relaxed ps-9 pe-2">
-                    {segment.text}
-                  </p>
-                </div>
-              );
-            })
+                    <p className="text-sm text-text-primary leading-relaxed ps-9 pe-2">
+                      {segment.text}
+                    </p>
+                  </div>
+                );
+              })}
+
+              {interimTranscript && (() => {
+                const config = getSpeakerConfig(interimTranscript.speaker);
+                return (
+                  <div className={`transcript-segment ${config.segmentClass} flex flex-col gap-1.5 opacity-75 border-dashed border border-white/5 bg-white/[0.01] rounded-xl p-3`}>
+                    {/* Speaker Header */}
+                    <div className="flex items-center gap-2">
+                      <div className={`speaker-avatar ${config.avatarClass} flex-shrink-0`}>
+                        {config.avatarText}
+                      </div>
+                      <span className={`text-xs font-bold ${config.colorClass} uppercase tracking-wider flex items-center gap-2`}>
+                        {config.label}
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-blue opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-blue"></span>
+                        </span>
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-text-primary leading-relaxed ps-9 pe-2 italic">
+                      {interimTranscript.text}
+                    </p>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </div>
         

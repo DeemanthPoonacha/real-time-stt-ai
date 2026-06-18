@@ -55,14 +55,14 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Real-Time Sales Coaching Backend...")
 
     # Clean up old TTS cache folder if it exists
-    # tts_cache_dir = DATA_DIR / "tts_cache"
-    # if tts_cache_dir.exists():
-    #     logger.info("🧹 Cleaning up old TTS cache directory...")
-    #     import shutil
-    #     try:
-    #         shutil.rmtree(tts_cache_dir)
-    #     except Exception as e:
-    #         logger.warning(f"Failed to delete old TTS cache: {e}")
+    tts_cache_dir = DATA_DIR / "tts_cache"
+    if tts_cache_dir.exists():
+        logger.info("🧹 Cleaning up old TTS cache directory...")
+        import shutil
+        try:
+            shutil.rmtree(tts_cache_dir)
+        except Exception as e:
+            logger.warning(f"Failed to delete old TTS cache: {e}")
 
     # Initialize RAG engine and ingest data
     rag_engine.initialize()
@@ -207,7 +207,7 @@ async def get_demo_transcript(language: str = "en"):
 
 
 @app.get("/api/tts")
-async def get_tts(text: str, lang: str = "he", speaker: str = "rep"):
+async def get_tts(text: str, lang: str = "he", speaker: str = "rep", rate: str | None = None):
     """
     Generate TTS using Microsoft Edge TTS for natural, distinguished neural voices.
     Streams the audio response directly to the client without writing to disk.
@@ -228,10 +228,14 @@ async def get_tts(text: str, lang: str = "he", speaker: str = "rep"):
     else:  # en or other
         voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
 
-    logger.info(f"Generating TTS (Streaming): voice={voice}, speaker={speaker}, text='{cleaned_text[:30]}...'")
+    # Default speech rate: rep speaks faster (+30%), prospect speaks at normal speed (+0%)
+    if rate is None:
+        rate = "+30%" if speaker == "rep" else "+0%"
+
+    logger.info(f"Generating TTS (Streaming): voice={voice}, speaker={speaker}, rate={rate}, text='{cleaned_text[:30]}...'")
 
     try:
-        communicate = edge_tts.Communicate(cleaned_text, voice)
+        communicate = edge_tts.Communicate(cleaned_text, voice, rate=rate)
         
         async def audio_stream_generator():
             async for chunk in communicate.stream():
@@ -285,6 +289,7 @@ async def coaching_websocket(websocket: WebSocket):
             return
 
         current_speaker = stt_stream.active_speaker if stt_stream else "rep"
+        is_final = getattr(segment, "is_final", True)
 
         # Send transcript to client
         await send_json({
@@ -293,7 +298,11 @@ async def coaching_websocket(websocket: WebSocket):
             "timestamp": segment.timestamp,
             "language": segment.language,
             "speaker": current_speaker,
+            "is_final": is_final
         })
+
+        if not is_final:
+            return
 
         # Cancel any pending coaching task
         if coaching_task and not coaching_task.done():

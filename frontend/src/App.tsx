@@ -50,6 +50,7 @@ export default function App() {
   const [demoProgress, setDemoProgress] = useState<{ current: number; total: number; speaker: string } | null>(null); // {current, total}
   const [activeRetrievedDocs, setActiveRetrievedDocs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'transcript' | 'coaching' | 'playbook'>('coaching');
+  const [interimTranscript, setInterimTranscript] = useState<{ text: string; speaker: string } | null>(null);
 
   // --- Refs ---
   const wsRef = useRef<WebSocketManager | null>(null);
@@ -103,12 +104,17 @@ export default function App() {
           }
         }
 
-        setTranscriptSegments(prev => [...prev, {
-          text: data.text,
-          speaker: currentSpeaker,
-          timestamp: data.timestamp,
-          language: data.language,
-        }]);
+        if (data.is_final === false) {
+          setInterimTranscript({ text: data.text, speaker: currentSpeaker });
+        } else {
+          setInterimTranscript(null);
+          setTranscriptSegments(prev => [...prev, {
+            text: data.text,
+            speaker: currentSpeaker,
+            timestamp: data.timestamp,
+            language: data.language,
+          }]);
+        }
         break;
 
       case 'retrieved_docs':
@@ -213,6 +219,7 @@ export default function App() {
     } else {
       // Start
       setTranscriptSegments([]);
+      setInterimTranscript(null);
       setCoachingSuggestions([]);
       setActiveRetrievedDocs([]);
       setStreamingText('');
@@ -261,6 +268,7 @@ export default function App() {
     } else {
       // Connect to coaching WS
       setTranscriptSegments([]);
+      setInterimTranscript(null);
       setCoachingSuggestions([]);
       setActiveRetrievedDocs([]);
       setStreamingText('');
@@ -354,6 +362,7 @@ export default function App() {
     setIsRecording(false);
     setIsDemo(false);
     setTranscriptSegments([]);
+    setInterimTranscript(null);
     setCoachingSuggestions([]);
     setActiveRetrievedDocs([]);
     setStreamingText('');
@@ -537,6 +546,7 @@ export default function App() {
           <LiveTranscript
             segments={transcriptSegments}
             language={language}
+            interimTranscript={interimTranscript}
           />
         </div>
 

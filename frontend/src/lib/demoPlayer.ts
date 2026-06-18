@@ -599,7 +599,7 @@ export class DemoPlayer {
             utterance.lang = 'he-IL';
             utterance.voice = speaker === 'rep' ? heVoices[0] : (heVoices[1] || heVoices[0]);
             utterance.pitch = speaker === 'rep' ? 1.0 : 1.15;
-            utterance.rate = 1.0 * this.speed;
+            utterance.rate = (speaker === 'rep' ? 1.3 : 1.0) * this.speed;
             utterance.volume = 0.8;
             utterance.onend = handleResolve;
             utterance.onerror = handleResolve;
@@ -614,7 +614,7 @@ export class DemoPlayer {
             utterance.lang = 'es-ES';
             utterance.voice = speaker === 'rep' ? esVoices[0] : (esVoices[1] || esVoices[0]);
             utterance.pitch = speaker === 'rep' ? 1.0 : 1.1;
-            utterance.rate = 1.0 * this.speed;
+            utterance.rate = (speaker === 'rep' ? 1.3 : 1.0) * this.speed;
             utterance.volume = 0.8;
             utterance.onend = handleResolve;
             utterance.onerror = handleResolve;
@@ -629,7 +629,7 @@ export class DemoPlayer {
             utterance.lang = 'fr-FR';
             utterance.voice = speaker === 'rep' ? frVoices[0] : (frVoices[1] || frVoices[0]);
             utterance.pitch = speaker === 'rep' ? 1.0 : 1.1;
-            utterance.rate = 1.0 * this.speed;
+            utterance.rate = (speaker === 'rep' ? 1.3 : 1.0) * this.speed;
             utterance.volume = 0.8;
             utterance.onend = handleResolve;
             utterance.onerror = handleResolve;
@@ -642,7 +642,7 @@ export class DemoPlayer {
           if (speaker === 'rep') {
             utterance.voice = this._repVoice;
             utterance.pitch = 1.0;
-            utterance.rate = 1.05 * this.speed;
+            utterance.rate = 1.3 * this.speed;
           } else {
             utterance.voice = this._prospectVoice;
             utterance.pitch = 1.1;
