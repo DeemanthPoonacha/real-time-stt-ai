@@ -494,7 +494,7 @@ export default function CoachingPanel({ suggestions, streamingText, isStreaming,
                                 </button>
                               )}
                             </div>
-                            <p className="text-xs text-text-primary italic leading-relaxed font-mono font-medium pl-1.5 border-l-2 border-white/10">
+                            <p className="text-lg text-text-primary italic leading-relaxed font-mono font-medium pl-2 border-l-2 border-accent-blue animate-[borderPulse_1.2s_ease-in-out_infinite] mb-1">
                               "{parsed.script}"
                             </p>
                           </div>

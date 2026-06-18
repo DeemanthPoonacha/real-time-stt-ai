@@ -811,3 +811,12 @@ select:focus-visible,
 .playbook-match-pulse {
   animation: playbook-match-glow 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+
+@keyframes borderPulse {
+  0%, 100% {
+    border-left-color: transparent;
+  }
+  50% {
+    border-left-color: var(--color-accent-blue); /* or your actual color */
+  }
+}

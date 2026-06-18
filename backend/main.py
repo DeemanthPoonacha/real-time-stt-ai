@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 rag_engine = RAGEngine()
 stt_engine: STTEngine | None = None
 
+TTS_CACHE_DIR = DATA_DIR / "tts_cache"
 
 
 @asynccontextmanager
@@ -55,14 +56,14 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Real-Time Sales Coaching Backend...")
 
     # Clean up old TTS cache folder if it exists
-    tts_cache_dir = DATA_DIR / "tts_cache"
-    if tts_cache_dir.exists():
-        logger.info("🧹 Cleaning up old TTS cache directory...")
-        import shutil
-        try:
-            shutil.rmtree(tts_cache_dir)
-        except Exception as e:
-            logger.warning(f"Failed to delete old TTS cache: {e}")
+    # tts_cache_dir = DATA_DIR / "tts_cache"
+    # if tts_cache_dir.exists():
+    #     logger.info("🧹 Cleaning up old TTS cache directory...")
+    #     import shutil
+    #     try:
+    #         shutil.rmtree(tts_cache_dir)
+    #     except Exception as e:
+    #         logger.warning(f"Failed to delete old TTS cache: {e}")
 
     # Initialize RAG engine and ingest data
     rag_engine.initialize()
@@ -117,6 +118,52 @@ async def health_check():
         "rag_documents": rag_engine.get_stats()["total_documents"],
     }
 
+
+@app.get("/api/demo/generate-transcripts")
+async def generate_demo_transcripts():
+    """Generate TTS audio files for static demo transcripts."""
+    import edge_tts
+
+    logger.info("🎙️ Generating demo transcript TTS audio...")
+    langs_to_cache = ["en", "he"]
+    for lang in langs_to_cache:
+        file_name = "demo_transcript_he.json" if lang == "he" else "demo_transcript.json"
+        demo_path = DATA_DIR / file_name
+        if not demo_path.exists():
+            continue
+        try:
+            with open(demo_path, "r", encoding="utf-8") as f:
+                demo_data = json.load(f)
+            segments = demo_data.get("segments", [])
+            for index, segment in enumerate(segments):
+                text = segment.get("text", "").strip()
+                speaker = segment.get("speaker", "unknown")
+                if not text:
+                    continue
+
+                # Check cache first
+                cache_str = f"{lang}:{speaker}:{text}"
+                cache_key = hashlib.md5(cache_str.encode("utf-8")).hexdigest()
+                cache_file = TTS_CACHE_DIR / f"{lang}_{index}_{text[:10].replace(' ', '_')}_{cache_key}.mp3"
+                if cache_file.exists() and cache_file.stat().st_size > 0:
+                    continue
+
+                # Determine voice
+                if lang == "he":
+                    voice = "he-IL-AvriNeural" if speaker == "rep" else "he-IL-HilaNeural"
+                else:
+                    voice = "en-US-GuyNeural" if speaker == "rep" else "en-US-AvaNeural"
+
+                try:
+                    logger.info(f"Pre-caching static TTS: lang={lang}, speaker={speaker}, text='{text[:20]}...'")
+                    communicate = edge_tts.Communicate(text, voice)
+                    await communicate.save(str(cache_file))
+                except Exception as e:
+                    logger.warning(f"Failed to pre-cache segment for {lang}: {e}")
+        except Exception as e:
+            logger.error(f"Error loading demo transcript for pre-caching ({lang}): {e}")
+
+    logger.info("✅ Background demo transcript pre-caching complete!")
 
 @app.get("/api/playbook")
 async def get_playbook(language: str = "en"):
