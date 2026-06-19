@@ -93,7 +93,21 @@ export const translations = {
     speak: "Speak",
     match: "Match",
     liveMatch: "Live Match",
-    playbookMatch: "Playbook Match"
+    playbookMatch: "Playbook Match",
+
+    // Screen Recorder
+    recorderTitle: "Demo Recorder",
+    startRecord: "Start Recording",
+    stopRecord: "Stop Recording",
+    includeMic: "Include Microphone",
+    recordingPreview: "Recording Preview",
+    download: "Download Video",
+    discard: "Discard",
+    micAccessError: "Microphone access failed. Proceeding without mic audio.",
+    screenShareError: "Screen share access denied or aborted.",
+    recordingSaved: "Recording saved successfully!",
+    readyToRecord: "Ready to record your demo walkthrough",
+    recordingActive: "Recording Demo..."
   },
   he: {
     // App Header & Layout
@@ -381,7 +395,21 @@ export const translations = {
     speak: "Parler",
     match: "Correspondance",
     liveMatch: "Correspondance en Direct",
-    playbookMatch: "Correspondance du Playbook"
+    playbookMatch: "Correspondance du Playbook",
+
+    // Screen Recorder
+    recorderTitle: "מקליט דמו",
+    startRecord: "התחל הקלטה",
+    stopRecord: "עצור הקלטה",
+    includeMic: "כלול מיקרופון",
+    recordingPreview: "תצוגה מקדימה של ההקלטה",
+    download: "הורד סרטון",
+    discard: "השלך",
+    micAccessError: "הגישה למיקרופון נכשלה. ממשיך ללא שמע מהמיקרופון.",
+    screenShareError: "הגישה לשיתוף מסך נדחתה או בוטלה.",
+    recordingSaved: "ההקלטה נשמרה בהצלחה!",
+    readyToRecord: "מוכן להקלטת מצגת דמו",
+    recordingActive: "מקליט דמו..."
   }
 };
 

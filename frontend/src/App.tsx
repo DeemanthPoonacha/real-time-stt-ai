@@ -4,6 +4,7 @@ import LiveTranscript from './components/LiveTranscript';
 import CoachingPanel from './components/CoachingPanel';
 import CallStats from './components/CallStats';
 import PlaybookSidebar from './components/PlaybookSidebar';
+import ScreenRecorder from './components/ScreenRecorder';
 import { WebSocketManager, AudioCapture } from './lib/websocket';
 import { DemoPlayer } from './lib/demoPlayer';
 import { t } from './lib/translations';
@@ -570,6 +571,9 @@ export default function App() {
           />
         </div>
       </main>
+
+      {/* Screen Recorder */}
+      <ScreenRecorder language={language} />
     </div>
   );
 }

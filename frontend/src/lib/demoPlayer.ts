@@ -16,6 +16,26 @@ interface Segment {
   delay_ms?: number;
 }
 
+const getSharedAudioContext = (): AudioContext => {
+  if (!(window as any).__salescoach_shared_audio_context__) {
+    const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+    (window as any).__salescoach_shared_audio_context__ = new AudioCtxClass({
+      sampleRate: 16000,
+    });
+  }
+  return (window as any).__salescoach_shared_audio_context__;
+};
+
+const getSharedAudioStream = (): MediaStream => {
+  const ctx = getSharedAudioContext();
+  if (!(window as any).__salescoach_app_audio_stream__) {
+    const dest = ctx.createMediaStreamDestination();
+    (window as any).__salescoach_app_audio_stream__ = dest.stream;
+    (window as any).__salescoach_audio_destination_node__ = dest;
+  }
+  return (window as any).__salescoach_app_audio_stream__;
+};
+
 const API_BASE = `http://${window.location.hostname}:8000`;
 const MAX_CONV_LIMIT = 15;
 
@@ -668,9 +688,7 @@ export class DemoPlayer {
       audio.playbackRate = this.speed;
       audio.volume = 0.8;
 
-      if (speaker === 'prospect') {
-        this._startStreamingAudio(audio);
-      }
+      this._routeAudioToOutput(audio, speaker);
 
       audio.onended = () => {
         this._stopStreamingAudio();
@@ -713,12 +731,10 @@ export class DemoPlayer {
     this.onSpeakingChange?.(null);
   }
 
-  private _startStreamingAudio(audio: HTMLAudioElement) {
+  private _routeAudioToOutput(audio: HTMLAudioElement, speaker: string) {
     try {
       if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-          sampleRate: 16000,
-        });
+        this.audioContext = getSharedAudioContext();
       }
 
       if (this.audioContext.state === 'suspended') {
@@ -731,36 +747,45 @@ export class DemoPlayer {
       this.sourceNode = source;
       source.connect(this.audioContext.destination);
 
-      const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-      source.connect(processor);
-      processor.connect(this.audioContext.destination);
-      this.processor = processor;
+      // Ensure global recorder stream is initialized and connect source to it
+      getSharedAudioStream();
+      const globalDest = (window as any).__salescoach_audio_destination_node__;
+      if (globalDest) {
+        source.connect(globalDest);
+      }
 
-      processor.onaudioprocess = (e) => {
-        if (this.isCancelled || !this.wsManager) return;
+      if (speaker === 'prospect') {
+        const processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+        source.connect(processor);
+        processor.connect(this.audioContext.destination);
+        this.processor = processor;
 
-        const float32 = e.inputBuffer.getChannelData(0);
-        const int16 = new Int16Array(float32.length);
-        for (let i = 0; i < float32.length; i++) {
-          const s = Math.max(-1, Math.min(1, float32[i]));
-          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-        }
+        processor.onaudioprocess = (e) => {
+          if (this.isCancelled || !this.wsManager) return;
 
-        const bytes = new Uint8Array(int16.buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
+          const float32 = e.inputBuffer.getChannelData(0);
+          const int16 = new Int16Array(float32.length);
+          for (let i = 0; i < float32.length; i++) {
+            const s = Math.max(-1, Math.min(1, float32[i]));
+            int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+          }
 
-        this.wsManager.send({
-          type: 'audio',
-          data: base64,
-          speaker: 'prospect',
-        });
-      };
+          const bytes = new Uint8Array(int16.buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+
+          this.wsManager.send({
+            type: 'audio',
+            data: base64,
+            speaker: 'prospect',
+          });
+        };
+      }
     } catch (err) {
-      console.error('Failed to stream audio of element:', err);
+      console.error('Failed to route audio:', err);
     }
   }
 
